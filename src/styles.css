@@ -79,6 +79,10 @@ body { background: var(--paper); color: var(--ink); }
   position: relative;
   overflow: hidden;
 }
+/* Stop the browser from scrolling/zooming the page over the canvas so our own
+   pinch-zoom and one-finger drag are the only gestures. Scoped to the Konva
+   canvas, so the bottom tool bar (a sibling overlay) still scrolls normally. */
+.editor2d .konvajs-content { touch-action: none; }
 .view3d { flex: 1; background: var(--topbar-bg); }
 .view3d canvas { display: block; }
 

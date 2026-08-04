@@ -74,6 +74,7 @@ export default function Editor2D() {
   const [armedRotation, setArmedRotation] = useState(0) // ghost rotation before drop
   const [drawThickness, setDrawThickness] = useState(DEFAULTS.wallThickness) // wall tool
   const dragRef = useRef(null)
+  const pinchRef = useRef(null) // { dist, mid } while two fingers are down
   const [ctxMenu, setCtxMenu] = useState(null) // { x, y, target } screen coords
   const [dimEdit, setDimEdit] = useState(null) // { a, b, len, sx, sy }
 
@@ -592,6 +593,63 @@ export default function Editor2D() {
     }
   }
 
+  // ---- touch: 1 finger reuses the mouse logic, 2 fingers pinch-zoom + pan --
+  // Konva populates getPointerPosition() for touch, and the mouse handlers key
+  // off e.evt.button (absent on touch → treated as a plain left press), so a
+  // single finger can share the exact same draw/select/drag code path.
+  const touchDist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+  const touchMid = (a, b, rect) => ({
+    x: (a.clientX + b.clientX) / 2 - rect.left,
+    y: (a.clientY + b.clientY) / 2 - rect.top,
+  })
+
+  const onTouchStart = (e) => {
+    const t = e.evt.touches
+    if (t.length >= 2) {
+      e.evt.preventDefault()
+      dragRef.current = null // abandon any single-finger interaction
+      const rect = stageRef.current.container().getBoundingClientRect()
+      pinchRef.current = { dist: touchDist(t[0], t[1]), mid: touchMid(t[0], t[1], rect) }
+      return
+    }
+    // preventDefault suppresses the browser's compatibility mouse events, which
+    // would otherwise re-fire onMouseDown and double-handle every tap.
+    e.evt.preventDefault()
+    onMouseDown(e)
+  }
+
+  const onTouchMove = (e) => {
+    const t = e.evt.touches
+    if (t.length >= 2 && pinchRef.current) {
+      e.evt.preventDefault()
+      const rect = stageRef.current.container().getBoundingClientRect()
+      const dist = touchDist(t[0], t[1])
+      const mid = touchMid(t[0], t[1], rect)
+      const prev = pinchRef.current
+      setViewport((v) => {
+        const scale = Math.min(0.5, Math.max(0.006, v.scale * (dist / prev.dist)))
+        // anchor the world point under the old midpoint, then re-place it at the
+        // new midpoint — one expression that both zooms and two-finger pans.
+        const wx = (prev.mid.x - v.x) / v.scale
+        const wy = (prev.mid.y - v.y) / v.scale
+        return { scale, x: mid.x - wx * scale, y: mid.y - wy * scale }
+      })
+      pinchRef.current = { dist, mid }
+      return
+    }
+    if (!pinchRef.current) {
+      e.evt.preventDefault()
+      onMouseMove()
+    }
+  }
+
+  const onTouchEnd = (e) => {
+    // lifting one of two fingers ends the pinch; a fresh drag starts on the
+    // next touchstart, which avoids a jump from the leftover finger.
+    if (e.evt.touches.length < 2) pinchRef.current = null
+    if (e.evt.touches.length === 0) onMouseUp()
+  }
+
   const onDblClick = () => {
     if (tool === 'wall') setChainStart(null)
     if (tool === 'zone' && zonePts.length >= 3) {
@@ -922,6 +980,9 @@ export default function Editor2D() {
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
         onDblClick={onDblClick}
       >
         <Layer listening={false}>
@@ -1232,9 +1293,9 @@ export default function Editor2D() {
         {/* interactive handles: wall endpoints, opening ends, furniture corners */}
         <Layer>
           {selectedWall && [selectedWall.start, selectedWall.end].map((pt, i) => (
-            <Circle key={i} x={pt.x} y={pt.y} radius={px(7)}
+            <Circle key={i} x={pt.x} y={pt.y} radius={px(7)} hitStrokeWidth={px(22)}
               fill={T.plan.handleFill} stroke={T.plan.handleStroke} strokeWidth={px(2.5)}
-              onMouseDown={startNodeDrag(pt)}
+              onMouseDown={startNodeDrag(pt)} onTouchStart={startNodeDrag(pt)}
               onMouseEnter={(e) => { e.target.getStage().container().style.cursor = 'move' }}
               onMouseLeave={(e) => { e.target.getStage().container().style.cursor = '' }} />
           ))}
@@ -1245,9 +1306,10 @@ export default function Editor2D() {
               const pt = pointAlongWall(wall,
                 end === 'a' ? selectedOpening.offset : selectedOpening.offset + selectedOpening.width)
               return (
-                <Circle key={end} x={pt.x} y={pt.y} radius={px(6)}
+                <Circle key={end} x={pt.x} y={pt.y} radius={px(6)} hitStrokeWidth={px(22)}
                   fill={T.plan.handleFill} stroke={T.plan.handleStroke} strokeWidth={px(2.5)}
                   onMouseDown={startOpeningEndDrag(selectedOpening, end)}
+                  onTouchStart={startOpeningEndDrag(selectedOpening, end)}
                   onMouseEnter={(e) => { e.target.getStage().container().style.cursor = 'ew-resize' }}
                   onMouseLeave={(e) => { e.target.getStage().container().style.cursor = '' }} />
               )
@@ -1263,9 +1325,9 @@ export default function Editor2D() {
               const x = f.position.x + lx * cos - ly * sin
               const y = f.position.y + lx * sin + ly * cos
               return (
-                <Circle key={`${sx}${sy}`} x={x} y={y} radius={px(6)}
+                <Circle key={`${sx}${sy}`} x={x} y={y} radius={px(6)} hitStrokeWidth={px(22)}
                   fill={T.plan.handleFill} stroke={T.plan.handleStroke} strokeWidth={px(2.5)}
-                  onMouseDown={startFurnResize(f, sx, sy)}
+                  onMouseDown={startFurnResize(f, sx, sy)} onTouchStart={startFurnResize(f, sx, sy)}
                   onMouseEnter={(e) => { e.target.getStage().container().style.cursor = 'nwse-resize' }}
                   onMouseLeave={(e) => { e.target.getStage().container().style.cursor = '' }} />
               )

@@ -732,8 +732,17 @@ export const usePlanStore = create((set, get) => {
       set({ theme })
     },
     selection: null,
-    setSelection: (selection) =>
-      set(selection ? { selection, inspectorOpen: true } : { selection }),
+    // Selecting an item reveals its settings in the inspector. On desktop the
+    // inspector is a side panel, so opening it is free. On phones it's a
+    // full-height sheet that would bury the canvas mid-drag, so there we only
+    // show the on-canvas selection handles and let the user open the sheet
+    // (via its FAB) when they actually want to edit properties.
+    setSelection: (selection) => {
+      if (!selection) return set({ selection })
+      const narrow = typeof window !== 'undefined'
+        && window.matchMedia('(max-width: 760px)').matches
+      set(narrow ? { selection } : { selection, inspectorOpen: true })
+    },
     tool: 'select',
     setTool: (tool) => set({ tool }),
     view: '2d',
