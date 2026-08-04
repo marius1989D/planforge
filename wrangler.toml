@@ -1,0 +1,11 @@
+name = "planforge"
+compatibility_date = "2026-07-01"
+
+# PlanForge is a pure client-side Vite/React SPA with no backend, so this is a
+# static-assets-only Worker: no `main`, no bindings. Cloudflare serves the
+# files produced by `npm run build` directly from ./dist.
+[assets]
+directory = "./dist"
+# SPA mode: every unmatched path is rewritten to index.html so client-side
+# routing works and deep links don't 404.
+not_found_handling = "single-page-application"

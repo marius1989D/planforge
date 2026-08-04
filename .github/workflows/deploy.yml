@@ -1,0 +1,41 @@
+name: Deploy
+
+# Build here and call wrangler directly so what gets deployed is exactly what
+# `npm run build` produced in this run, rather than relying on Cloudflare's
+# Git-connected build pipeline.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify build output
+        # Fail loudly rather than silently deploying an empty asset directory.
+        run: test -f dist/index.html || { echo "dist/index.html missing"; exit 1; }
+
+      - name: Deploy to Cloudflare
+        # Uses the wrangler pinned in package-lock.json (installed by npm ci),
+        # the same version that works locally.
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

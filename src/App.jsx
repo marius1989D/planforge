@@ -1,0 +1,301 @@
+import React, { useRef, useState, useEffect } from 'react'
+import { usePlanStore } from './store/planStore'
+import Editor2D from './components/Editor2D'
+import View3D from './components/View3D'
+import Inspector from './components/Inspector'
+import { exportPlanPdf } from './export/pdfExport'
+import { getTheme, THEMES } from './model/themes'
+import CommandPalette from './components/CommandPalette'
+import AiGenerate from './components/AiGenerate'
+
+const TYPE_LABELS = {
+  wall: 'wall', opening: 'door/window', room: 'room', zone: 'zone', furniture: 'furniture', stair: 'stairs',
+}
+
+// Minimal dropdown menu (closes on outside click / Esc)
+function Menu({ label, items }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+  return (
+    <div className="menu" ref={ref}>
+      <button className="menu-trigger" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        {label} ▾
+      </button>
+      {open && (
+        <div className="menu-panel" role="menu">
+          {items.map((item, i) =>
+            item === 'divider' ? (
+              <div key={i} className="menu-divider" />
+            ) : (
+              <button key={i} role="menuitem" className={item.danger ? 'danger' : ''}
+                onClick={() => { setOpen(false); item.onClick() }}>
+                {item.label}
+              </button>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function App() {
+  const plan = usePlanStore((s) => s.plan)
+  const plansIndex = usePlanStore((s) => s.plansIndex)
+  const renamePlan = usePlanStore((s) => s.renamePlan)
+  const newPlan = usePlanStore((s) => s.newPlan)
+  const switchPlan = usePlanStore((s) => s.switchPlan)
+  const duplicatePlan = usePlanStore((s) => s.duplicatePlan)
+  const deleteCurrentPlan = usePlanStore((s) => s.deleteCurrentPlan)
+  const importPlan = usePlanStore((s) => s.importPlan)
+  const exportPlan = usePlanStore((s) => s.exportPlan)
+  const undo = usePlanStore((s) => s.undo)
+  const redo = usePlanStore((s) => s.redo)
+  const canUndo = usePlanStore((s) => s._history.undo.length > 0)
+  const canRedo = usePlanStore((s) => s._history.redo.length > 0)
+  const selection = usePlanStore((s) => s.selection)
+  const setSelection = usePlanStore((s) => s.setSelection)
+  const duplicateSelected = usePlanStore((s) => s.duplicateSelected)
+  const deleteWall = usePlanStore((s) => s.deleteWall)
+  const deleteOpening = usePlanStore((s) => s.deleteOpening)
+  const deleteManualRoom = usePlanStore((s) => s.deleteManualRoom)
+  const deleteFurniture = usePlanStore((s) => s.deleteFurniture)
+  const deleteStair = usePlanStore((s) => s.deleteStair)
+  const addFloor = usePlanStore((s) => s.addFloor)
+  const setWalkMode = usePlanStore((s) => s.setWalkMode)
+  const [aiOpen, setAiOpen] = useState(false)
+  const pngExporter = usePlanStore((s) => s.pngExporter)
+  const themeId = usePlanStore((s) => s.theme)
+  const setTheme = usePlanStore((s) => s.setTheme)
+  const setTool = usePlanStore((s) => s.setTool)
+  const setInspectorOpen = usePlanStore((s) => s.setInspectorOpen)
+  const loadSamplePlan = usePlanStore((s) => s.loadSamplePlan)
+  const setShowDimensions = usePlanStore((s) => s.setShowDimensions)
+  const setImportOpener = usePlanStore((s) => s.setImportOpener)
+  const view = usePlanStore((s) => s.view)
+  const setView = usePlanStore((s) => s.setView)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const fileRef = useRef(null)
+
+  // ⌘K opens the command palette from anywhere
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((o) => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // let the empty-state "Import" button trigger the hidden file input
+  useEffect(() => {
+    setImportOpener(() => () => fileRef.current?.click())
+    return () => setImportOpener(null)
+  }, [setImportOpener])
+
+  // apply the theme's chrome tokens as CSS variables
+  useEffect(() => {
+    const c = getTheme(themeId).chrome
+    const r = document.documentElement.style
+    r.setProperty('--paper', c.paper)
+    r.setProperty('--panel', c.panel)
+    r.setProperty('--line', c.line)
+    r.setProperty('--ink', c.ink)
+    r.setProperty('--ink-soft', c.inkSoft)
+    r.setProperty('--accent', c.accent)
+    r.setProperty('--accent-ink', c.accentInk)
+    r.setProperty('--danger', c.danger)
+    r.setProperty('--topbar-bg', c.topbarBg)
+    r.setProperty('--topbar-border', c.topbarBorder)
+    r.setProperty('--topbar-ink', c.topbarInk)
+    r.setProperty('--topbar-ink-soft', c.topbarInkSoft)
+  }, [themeId])
+
+  const selType = selection ? TYPE_LABELS[selection.type] : null
+  const canDeleteSel = selection && selection.type !== 'room'
+
+  const deleteSelected = () => {
+    if (!selection) return
+    if (selection.type === 'wall') deleteWall(selection.id)
+    else if (selection.type === 'opening') deleteOpening(selection.id)
+    else if (selection.type === 'zone') deleteManualRoom(selection.id)
+    else if (selection.type === 'furniture') deleteFurniture(selection.id)
+    else if (selection.type === 'stair') deleteStair(selection.id)
+    setSelection(null)
+  }
+
+  const download = (url, filename) => {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+  }
+  const safeName = () => (plan.name || 'plan').replace(/\s+/g, '_')
+
+  const handleExportJson = () => {
+    const blob = new Blob([exportPlan()], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    download(url, `${safeName()}.planforge.json`)
+    URL.revokeObjectURL(url)
+  }
+  const handleExportPng = () => {
+    const dataUrl = pngExporter?.()
+    if (dataUrl) download(dataUrl, `${safeName()}.png`)
+    else alert('Switch to the 2D Plan view to export a PNG of the drawing.')
+  }
+  const handleImport = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        importPlan(JSON.parse(reader.result))
+      } catch {
+        alert('That file is not a valid PlanForge plan.')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        {/* project identity */}
+        <span className="logo">PLANFORGE</span>
+        <select className="plan-select" value={plan.id}
+          onChange={(e) => switchPlan(e.target.value)} aria-label="Open plan">
+          {plansIndex.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        <input className="plan-name" value={plan.name}
+          onChange={(e) => renamePlan(e.target.value)} aria-label="Plan name" />
+
+        <div className="view-switch" role="tablist">
+          <button role="tab" aria-selected={view === '2d'}
+            className={view === '2d' ? 'active' : ''}
+            onClick={() => setView('2d')}>2D Plan</button>
+          <button role="tab" aria-selected={view === '3d'}
+            className={view === '3d' ? 'active' : ''}
+            onClick={() => setView('3d')}>3D View</button>
+        </div>
+
+        <div className="topbar-actions">
+          {/* history */}
+          <button onClick={undo} disabled={!canUndo} title="Undo (⌘Z)">↩</button>
+          <button onClick={redo} disabled={!canRedo} title="Redo (⇧⌘Z)">↪</button>
+          <span className="topbar-sep" />
+
+          {/* selected item */}
+          <button onClick={duplicateSelected} disabled={!selection}
+            title={selection ? `Duplicate ${selType} (⌘D)` : 'Select something to duplicate'}>
+            Duplicate
+          </button>
+          <button onClick={deleteSelected} disabled={!canDeleteSel}
+            title={!selection ? 'Select something to delete'
+              : selection.type === 'room'
+                ? 'Rooms are defined by their walls — delete walls individually'
+                : `Delete ${selType} (Del)`}>
+            Delete
+          </button>
+          <span className="topbar-sep" />
+
+          {/* project + export menus */}
+          <Menu label="Project" items={[
+            { label: 'New project', onClick: () => newPlan('Untitled Plan') },
+            { label: 'Duplicate project', onClick: duplicatePlan },
+            { label: 'Import project…', onClick: () => fileRef.current?.click() },
+            { label: '✨ Generate with AI…', onClick: () => setAiOpen(true) },
+            'divider',
+            {
+              label: 'Delete project…', danger: true,
+              onClick: () => {
+                if (confirm(`Delete the project "${plan.name}"? This cannot be undone.`)) {
+                  deleteCurrentPlan()
+                }
+              },
+            },
+          ]} />
+          <Menu label="Export" items={[
+            { label: 'PNG image', onClick: handleExportPng },
+            { label: 'PDF drawing + schedules', onClick: () => exportPlanPdf(plan, getTheme(themeId)) },
+            { label: 'JSON project file', onClick: handleExportJson },
+          ]} />
+          <input ref={fileRef} type="file" accept=".json,application/json"
+            style={{ display: 'none' }} onChange={handleImport} />
+        </div>
+      </header>
+
+      <main className="workspace">
+        {view === '2d' ? <Editor2D /> : <View3D />}
+        <Inspector />
+      </main>
+
+      {aiOpen && <AiGenerate onClose={() => setAiOpen(false)} />}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        actions={[
+          { label: 'Select tool', keywords: 'pointer move', hint: 'V', run: () => { setView('2d'); setTool('select') } },
+          { label: 'Draw walls', keywords: 'wall tool', hint: 'W', run: () => { setView('2d'); setTool('wall') } },
+          { label: 'Place door', keywords: 'opening', hint: 'D', run: () => { setView('2d'); setTool('door') } },
+          { label: 'Place window', keywords: 'opening glass', hint: 'N', run: () => { setView('2d'); setTool('window') } },
+          { label: 'Place furniture', keywords: 'sofa bed table library', hint: 'F', run: () => { setView('2d'); setTool('furniture') } },
+          { label: 'Draw zone', keywords: 'open plan area kitchen', hint: 'Z', run: () => { setView('2d'); setTool('zone') } },
+          { label: 'Place stairs', keywords: 'staircase floor up', hint: 'S', run: () => { setView('2d'); setTool('stair') } },
+          { label: 'Measure a distance', keywords: 'tape ruler length', hint: 'M', run: () => { setView('2d'); setTool('measure') } },
+          { label: 'Add a floor', keywords: 'storey level upstairs', run: addFloor },
+          {
+            label: 'Toggle sun & daylight simulation', keywords: 'sunlight shadows solar time',
+            run: () => {
+              const st = usePlanStore.getState()
+              st.setSunSettings({ enabled: !st.plan.sun?.enabled })
+              setView('3d')
+            },
+          },
+          { label: 'Switch to 2D plan', keywords: 'view editor', run: () => setView('2d') },
+          { label: 'Switch to 3D view', keywords: 'view model', run: () => setView('3d') },
+          { label: 'Walk through the home', keywords: 'first person walkthrough tour explore', run: () => { setView('3d'); setWalkMode(true) } },
+          { label: 'Undo', hint: '⌘Z', run: undo },
+          { label: 'Redo', hint: '⇧⌘Z', run: redo },
+          { label: 'Duplicate selected item', hint: '⌘D', run: duplicateSelected },
+          { label: 'Delete selected item', keywords: 'remove', hint: 'Del', run: deleteSelected },
+          {
+            label: 'Auto-furnish selected room…', keywords: 'furniture layout bedroom living kitchen fill',
+            run: () => { setInspectorOpen(true) },
+          },
+          { label: 'Export PNG image', keywords: 'download picture', run: handleExportPng },
+          { label: 'Export PDF drawing + schedules', keywords: 'download print', run: () => exportPlanPdf(plan, getTheme(themeId)) },
+          { label: 'Export JSON project file', keywords: 'download save', run: handleExportJson },
+          { label: 'New project', run: () => newPlan('Untitled Plan') },
+          { label: 'Duplicate project', keywords: 'copy plan', run: duplicatePlan },
+          { label: 'Import project…', keywords: 'open load json', run: () => fileRef.current?.click() },
+          { label: 'Generate a plan with AI…', keywords: 'ai claude describe magic create', run: () => setAiOpen(true) },
+          { label: 'Load the sample home', keywords: 'demo example bungalow try', run: loadSamplePlan },
+          ...Object.values(THEMES).map((t) => ({
+            label: `Theme: ${t.label}`, keywords: 'appearance color dark light', run: () => setTheme(t.id),
+          })),
+          { label: 'Show dimensions', keywords: 'measurements on', run: () => setShowDimensions(true) },
+          { label: 'Hide dimensions', keywords: 'measurements off', run: () => setShowDimensions(false) },
+          { label: 'Open settings panel', keywords: 'inspector sidebar', run: () => setInspectorOpen(true) },
+        ]}
+      />
+    </div>
+  )
+}
