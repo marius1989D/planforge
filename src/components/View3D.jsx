@@ -17,6 +17,23 @@ import { buildHipRoofGeometry } from '../geometry/roofGeo'
 // mm → metres. Plan is y-down screen space; world maps plan y → +z.
 const M = 1 / 1000
 
+// Distance at which a bounding sphere of `radius` fits inside the view.
+// three's PerspectiveCamera fov is vertical, so on a tall (portrait) screen
+// the horizontal fov is the tighter constraint — fit to whichever is smaller
+// so the model is never cropped off the sides on a phone.
+function fitDistance(radius, aspect, fovDeg) {
+  const vFov = (fovDeg * Math.PI) / 180
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect)
+  const fovMin = Math.min(vFov, hFov)
+  return (radius / Math.sin(fovMin / 2)) * 1.15 // 15% breathing room
+}
+
+// Show touch walk-mode controls on devices without a mouse. Some report a
+// coarse pointer, others only expose touch points — accept either.
+const isCoarsePointer = () =>
+  typeof window !== 'undefined' &&
+  (window.matchMedia?.('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)
+
 // theme-driven materials; zone overlay colors reuse the plan zone ramp
 const materialsFor = (T) => ({
   wall: T.three.wall,
@@ -26,37 +43,55 @@ const materialsFor = (T) => ({
   zone: T.plan.zoneColors,
 })
 
-// Camera fly-in: starts top-down over the plan (echoing the 2D view)
-// and eases into the standard orbit pose over ~700ms — the signature
-// "the plan and the model are one object" moment. Controls unlock when
-// it lands. Skipped entirely under prefers-reduced-motion.
-function FlyIn({ target, flownRef }) {
-  const { camera, controls } = useThree()
+// Frames the model in the orbit view. The end pose is computed from the
+// model's bounding radius and the *current* viewport aspect, so the house
+// fits whether the screen is a wide desktop or a tall phone. It still fly-ins
+// from a top-down pose (echoing the 2D view) unless reduced-motion is set or
+// we've already flown in this mount, in which case it snaps.
+function FrameCamera({ target, radius, flownRef }) {
+  const { camera, controls, size } = useThree()
   const startTime = React.useRef(null)
-  const done = React.useRef(
-    flownRef.current ||
-    (typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
-  )
+  const reduced =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const done = React.useRef(false)
+
+  // fitted orbit pose for this aspect ratio
+  const end = React.useMemo(() => {
+    const aspect = size.width / Math.max(1, size.height)
+    const d = fitDistance(radius, aspect, camera.fov)
+    const u = new THREE.Vector3(1, 0.85, 1).normalize()
+    return { x: target[0] + u.x * d, y: u.y * d, z: target[2] + u.z * d, d }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, radius, size.width, size.height, camera.fov])
+
+  const land = () => {
+    done.current = true
+    flownRef.current = true
+    if (controls) {
+      controls.target.set(target[0], 0, target[2])
+      controls.update()
+      controls.enabled = true
+    }
+  }
+
   useFrame((state) => {
     if (done.current) return
+    // snap (no animation) when reduced-motion, or when this mount already flew
+    if (reduced || flownRef.current) {
+      camera.position.set(end.x, end.y, end.z)
+      camera.lookAt(target[0], 0, target[2])
+      land()
+      return
+    }
     if (startTime.current == null) startTime.current = state.clock.elapsedTime
     const k = Math.min(1, (state.clock.elapsedTime - startTime.current) / 0.7)
     const e = 1 - Math.pow(1 - k, 3) // ease-out cubic
-    const sx = target[0], sy = 16, sz = target[2] + 0.02
-    const ex = target[0] + 9, ey = 8, ez = target[2] + 9
-    camera.position.set(sx + (ex - sx) * e, sy + (ey - sy) * e, sz + (ez - sz) * e)
+    const sx = target[0], sy = Math.max(16, end.y * 1.8), sz = target[2] + 0.02
+    camera.position.set(sx + (end.x - sx) * e, sy + (end.y - sy) * e, sz + (end.z - sz) * e)
     camera.lookAt(target[0], 0, target[2])
     if (controls) controls.enabled = false
-    if (k >= 1) {
-      done.current = true
-      flownRef.current = true
-      if (controls) {
-        controls.target.set(target[0], 0, target[2])
-        controls.update()
-        controls.enabled = true
-      }
-    }
+    if (k >= 1) land()
   })
   return null
 }
@@ -215,12 +250,15 @@ function Stair3D({ stair, riseM, mat }) {
 // First-person walk mode: pointer-lock look, WASD/arrows move (Shift
 // runs), pure-geometry ground-follow (slabs + stair steps) and wall
 // collision with door pass-through — all from walkGeo, test-covered.
-function WalkMode({ plan, elevations, onExit }) {
+function WalkMode({ plan, elevations, input, mobile, onExit }) {
   const { camera } = useThree()
   const controlsRef = React.useRef(null)
   const keys = React.useRef({})
   const feet = React.useRef(0)
   const floorIdx = React.useRef(0)
+  // yaw/pitch we drive ourselves on touch (PointerLockControls needs a mouse)
+  const yaw = React.useRef(0)
+  const pitch = React.useRef(0)
 
   React.useEffect(() => {
     const dn = (e) => { keys.current[e.code] = true }
@@ -232,9 +270,13 @@ function WalkMode({ plan, elevations, onExit }) {
     floorIdx.current = 0
     camera.position.set(pose.x * M, EYE_M, pose.y * M)
     camera.lookAt(pose.x * M + pose.dirX, EYE_M, pose.y * M + pose.dirY)
-    const t = setTimeout(() => controlsRef.current?.lock?.(), 60)
+    // seed our manual yaw/pitch from the look-at orientation for touch mode
+    const e0 = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ')
+    yaw.current = e0.y
+    pitch.current = e0.x
+    const t = mobile ? null : setTimeout(() => controlsRef.current?.lock?.(), 60)
     return () => {
-      clearTimeout(t)
+      if (t) clearTimeout(t)
       window.removeEventListener('keydown', dn)
       window.removeEventListener('keyup', up)
     }
@@ -243,10 +285,22 @@ function WalkMode({ plan, elevations, onExit }) {
 
   useFrame((_, delta) => {
     const k = keys.current
+    // touch look: right stick turns the camera; clamp pitch to avoid flipping
+    if (mobile) {
+      const look = input.current.look
+      const lookSpeed = 2.4
+      yaw.current -= look.x * lookSpeed * Math.min(delta, 0.05)
+      pitch.current -= look.y * lookSpeed * Math.min(delta, 0.05)
+      pitch.current = Math.max(-1.3, Math.min(1.3, pitch.current))
+      camera.rotation.set(pitch.current, yaw.current, 0, 'YXZ')
+    }
     const run = k.ShiftLeft || k.ShiftRight
     const step = (run ? 4.2 : 2.2) * Math.min(delta, 0.05)
+    const mv = input.current.move
     const fwd = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0)
+      + (mobile ? -mv.y : 0)
     const strafe = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0)
+      + (mobile ? mv.x : 0)
     if (fwd || strafe) {
       const dir = new THREE.Vector3()
       camera.getWorldDirection(dir)
@@ -279,7 +333,61 @@ function WalkMode({ plan, elevations, onExit }) {
     camera.position.y = feet.current + EYE_M
   })
 
+  // desktop = pointer-lock mouse look; touch = manual look (joysticks), so no
+  // pointer-lock control at all there.
+  if (mobile) return null
   return <PointerLockControls ref={controlsRef} onUnlock={onExit} />
+}
+
+// On-screen analog stick for touch walk mode. Reports a normalised vector
+// (−1..1 on each axis, y-down) while dragged and {0,0} on release.
+function Joystick({ side, label, onChange }) {
+  const baseRef = React.useRef(null)
+  const touchId = React.useRef(null)
+  const [knob, setKnob] = React.useState({ x: 0, y: 0 })
+
+  const apply = (clientX, clientY) => {
+    const r = baseRef.current.getBoundingClientRect()
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2
+    const max = r.width / 2
+    let dx = clientX - cx, dy = clientY - cy
+    const d = Math.hypot(dx, dy)
+    if (d > max) { dx = (dx / d) * max; dy = (dy / d) * max }
+    setKnob({ x: dx, y: dy })
+    onChange({ x: dx / max, y: dy / max })
+  }
+  const start = (e) => {
+    const t = e.changedTouches[0]
+    touchId.current = t.identifier
+    apply(t.clientX, t.clientY)
+  }
+  const move = (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === touchId.current) { apply(t.clientX, t.clientY); e.preventDefault() }
+    }
+  }
+  const end = (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === touchId.current) {
+        touchId.current = null
+        setKnob({ x: 0, y: 0 })
+        onChange({ x: 0, y: 0 })
+      }
+    }
+  }
+  return (
+    <div
+      ref={baseRef}
+      className={`joystick joystick-${side}`}
+      onTouchStart={start}
+      onTouchMove={move}
+      onTouchEnd={end}
+      onTouchCancel={end}
+      aria-label={label}
+    >
+      <div className="joystick-knob" style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
+    </div>
+  )
 }
 
 // Lighting rig: default studio light, or — with the sun simulation
@@ -370,6 +478,25 @@ export default function View3D() {
     return [cx * M, 0, cy * M]
   }, [ground.walls])
 
+  // bounding radius (metres) of the whole footprint, used to fit the camera
+  const radius = useMemo(() => {
+    if (ground.walls.length === 0) return 6
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    for (const w of ground.walls) {
+      for (const pt of [w.start, w.end]) {
+        minX = Math.min(minX, pt.x); maxX = Math.max(maxX, pt.x)
+        minY = Math.min(minY, pt.y); maxY = Math.max(maxY, pt.y)
+      }
+    }
+    const wM = (maxX - minX) * M, dM = (maxY - minY) * M
+    // include wall height so a tall build isn't cropped top/bottom either
+    return 0.5 * Math.hypot(wM, dM, topHeightM) + 0.5
+  }, [ground.walls, topHeightM])
+
+  const isTouch = useMemo(() => isCoarsePointer(), [])
+  // shared control input for touch walk mode: left stick moves, right looks
+  const walkInput = React.useRef({ move: { x: 0, y: 0 }, look: { x: 0, y: 0 } })
+
   return (
     <div className="view3d" style={{ background: T.three.bg }}>
       <Canvas
@@ -430,11 +557,13 @@ export default function View3D() {
               pitchDeg={plan.roofPitch || 30} height={topElev + topHeightM} mat={mat} />
           ))}
         {!walkMode && <OrbitControls makeDefault target={target} />}
-        {!walkMode && <FlyIn target={target} flownRef={flownRef} />}
+        {!walkMode && <FrameCamera target={target} radius={radius} flownRef={flownRef} />}
         {walkMode && (
           <WalkMode
             plan={plan}
             elevations={elevations}
+            input={walkInput}
+            mobile={isTouch}
             onExit={() => setWalkMode(false)}
           />
         )}
@@ -452,10 +581,21 @@ export default function View3D() {
           🚶 Walk through
         </button>
       )}
-      {walkMode && (
+      {walkMode && !isTouch && (
         <div className="walk-pill walk-hint glass">
           WASD move · Shift run · mouse look · Esc exits
         </div>
+      )}
+      {walkMode && isTouch && (
+        <>
+          <Joystick side="left" label="Move"
+            onChange={(v) => { walkInput.current.move = v }} />
+          <Joystick side="right" label="Look"
+            onChange={(v) => { walkInput.current.look = v }} />
+          <button className="walk-exit glass" onClick={() => setWalkMode(false)}>
+            ✕ Exit
+          </button>
+        </>
       )}
     </div>
   )
