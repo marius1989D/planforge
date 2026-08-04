@@ -19,7 +19,7 @@
 html, body, #root { height: 100%; }
 body { background: var(--paper); color: var(--ink); }
 
-.app { display: flex; flex-direction: column; height: 100%; }
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
 /* ---- top bar ---- */
 .topbar {
@@ -185,10 +185,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline-offset: 1px;
 }
 
-@media (max-width: 760px) {
-  .workspace { flex-direction: column; }
-  .inspector { width: 100%; border-left: none; border-top: 1px solid var(--line); }
-}
+/* The overflow (☰) button lives in the topbar only on mobile.
+   All mobile layout overrides live at the END of this file so they
+   reliably win over the base rules they override. */
+.mobile-only { display: none; }
 
 /* ---- room list (Inspector) ---- */
 .room-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
@@ -735,3 +735,62 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
 .ai-go { justify-content: flex-end; display: flex; flex-direction: column; }
 .ai-warnings { margin: 4px 0 10px; padding-left: 18px; font-size: 12px; color: var(--ink-soft); }
 .ai-warnings li { margin: 3px 0; }
+
+/* ============================================================
+   MOBILE — kept at end of file so these overrides win over the
+   base rules above (equal specificity → later declaration wins).
+   ============================================================ */
+@keyframes sheetIn { from { opacity: 0; transform: translateY(16px); } }
+
+@media (max-width: 760px) {
+  /* ---- topbar: compact, never overflow ---- */
+  .topbar { gap: 8px; padding: 8px 10px; }
+  .topbar .logo,
+  .topbar .plan-select { display: none; }
+  .plan-name { min-width: 0; flex: 1; font-size: 14px; padding: 6px 8px; }
+  .view-switch button { padding: 8px 12px; }
+  /* everything except the ☰ button collapses into the command palette */
+  .topbar-actions > :not(.mobile-only) { display: none; }
+  .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
+
+  /* ---- tools dock to the bottom, full width, scrollable ---- */
+  .tool-palette {
+    top: auto; bottom: 0; left: 0; right: 0;
+    width: 100%; border-radius: 0;
+    gap: 2px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.16);
+  }
+  .tool-palette button { flex: 0 0 auto; padding: 10px 14px; }
+
+  /* ---- status hint sits above the bottom toolbar ---- */
+  .status-bar { max-width: calc(100% - 24px); bottom: 66px; }
+
+  /* ---- inspector becomes a bottom sheet ---- */
+  .inspector {
+    top: auto; left: 0; right: 0; bottom: 0;
+    width: 100%; max-height: 78dvh;
+    border-radius: 16px 16px 0 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    z-index: 40;
+    animation: sheetIn 220ms ease;
+  }
+  /* the "open panel" rail becomes a floating button above the toolbar */
+  .inspector-rail {
+    top: auto; bottom: 66px; right: 12px;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    font-size: 20px;
+  }
+}
+
+/* Finger-friendly hit targets on touch devices. */
+@media (pointer: coarse) {
+  .topbar-actions button,
+  .view-switch button,
+  .menu-trigger,
+  .tool-palette button { min-height: 40px; }
+}

@@ -108,6 +108,11 @@ export default function App() {
     return () => setImportOpener(null)
   }, [setImportOpener])
 
+  // on phones the inspector starts collapsed so the canvas isn't buried
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 760px)').matches) setInspectorOpen(false)
+  }, [setInspectorOpen])
+
   // apply the theme's chrome tokens as CSS variables
   useEffect(() => {
     const c = getTheme(themeId).chrome
@@ -197,6 +202,10 @@ export default function App() {
         </div>
 
         <div className="topbar-actions">
+          {/* mobile: one button opens the command palette, which holds every action */}
+          <button className="mobile-only topbar-menu-btn" onClick={() => setPaletteOpen(true)}
+            title="Menu" aria-label="Open menu">☰</button>
+
           {/* history */}
           <button onClick={undo} disabled={!canUndo} title="Undo (⌘Z)">↩</button>
           <button onClick={redo} disabled={!canRedo} title="Redo (⇧⌘Z)">↪</button>
