@@ -1175,21 +1175,6 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
     color: var(--ink-soft);
     margin: 0 0 8px;
   }
-  .settings-h-2 { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-  .settings-item {
-    width: 100%;
-    text-align: left;
-    padding: 9px 10px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: transparent;
-    color: var(--ink);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .settings-item:active { background: var(--panel-2); }
-
   /* keep the collapse ✕ tappable above the sticky drag grip */
   .inspector-collapse { z-index: 3; }
 }

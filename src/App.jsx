@@ -56,13 +56,13 @@ function Menu({ label, items }) {
   )
 }
 
-// Settings gear (mobile action bar): switch the design system + open the panel.
-function SettingsMenu() {
+// Appearance button (mobile action bar): a theme-swatch popover, sitting next
+// to the gear (which now opens the settings panel directly).
+function AppearanceMenu() {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const themeId = usePlanStore((s) => s.theme)
   const setTheme = usePlanStore((s) => s.setTheme)
-  const setInspectorOpen = usePlanStore((s) => s.setInspectorOpen)
   useEffect(() => {
     if (!open) return
     const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
@@ -76,9 +76,9 @@ function SettingsMenu() {
   }, [open])
   return (
     <div className="settings-menu" ref={ref}>
-      <button className="subbar-btn settings-btn" onClick={() => setOpen((o) => !o)}
-        title="Settings" aria-label="Settings" aria-expanded={open}>
-        <ActionIcon name="settings" />
+      <button className="subbar-btn" onClick={() => setOpen((o) => !o)}
+        title="Appearance" aria-label="Appearance" aria-expanded={open}>
+        <ActionIcon name="appearance" />
       </button>
       {open && (
         <div className="settings-panel glass" role="menu">
@@ -95,11 +95,6 @@ function SettingsMenu() {
               </button>
             ))}
           </div>
-          <p className="settings-h settings-h-2">Settings</p>
-          <button className="settings-item" role="menuitem"
-            onClick={() => { setInspectorOpen(true); setOpen(false) }}>
-            Open settings panel
-          </button>
         </div>
       )}
     </div>
@@ -380,7 +375,11 @@ export default function App() {
 
       {/* mobile sub-toolbar: appearance + critical actions, always in sight */}
       <div className="subbar" role="toolbar" aria-label="Quick actions">
-        <SettingsMenu />
+        <button className="subbar-btn settings-btn" onClick={() => setInspectorOpen(true)}
+          title="Settings" aria-label="Open settings panel">
+          <ActionIcon name="settings" />
+        </button>
+        <AppearanceMenu />
         <span className="subbar-sep" aria-hidden="true" />
         <button className="subbar-btn" onClick={undo} disabled={!canUndo}
           title="Undo (⌘Z)" aria-label="Undo"><ActionIcon name="undo" /></button>
