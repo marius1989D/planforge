@@ -8,6 +8,8 @@ import { solarPosition, sunLabel, SUN_DEFAULTS } from '../geometry/sunGeo'
 import { computeCostLines, DEFAULT_RATES, fmtMoney } from '../geometry/quantities'
 import { doorClearanceIssues } from '../geometry/clearanceGeo'
 import { FURNITURE_BY_TYPE } from '../model/furnitureLibrary'
+import { useIsMobile } from '../hooks/useIsMobile'
+import EditableField from './EditableField'
 
 // Drops a 4m × 3m room with a door and a window — verifies the
 // full pipeline: store → room detection → 2D fills → 3D extrusion
@@ -70,6 +72,7 @@ export default function Inspector() {
     ? floor.walls.find((w) => w.id === selection.id)
     : null
   const addDemoRoom = useAddDemoRoom()
+  const compact = useIsMobile()
 
   const totalArea = floor.rooms
     .filter((r) => r.source === 'auto')
@@ -122,11 +125,10 @@ export default function Inspector() {
         <button className="floor-add" title="Add a floor above (copies the shell walls)"
           onClick={() => addFloor()}>+</button>
       </div>
-      <label className="field">
-        Floor name
+      <EditableField label="Floor name" value={floor.name} compact={compact}>
         <input value={floor.name}
           onChange={(e) => renameFloor(plan.activeFloorIndex || 0, e.target.value)} />
-      </label>
+      </EditableField>
       {plan.floors.length > 1 && (
         <button className="danger-link"
           onClick={() => {
@@ -144,11 +146,21 @@ export default function Inspector() {
               <li key={r.id}
                 className={(selection?.type === 'room' || selection?.type === 'zone') &&
                   selection.id === r.id ? 'row-selected' : ''}>
-                <input
-                  value={r.name}
-                  onChange={(e) => renameRoom(r.id, e.target.value)}
-                  aria-label="Room name"
-                />
+                {compact ? (
+                  <EditableField label="Room name" value={r.name} compact row>
+                    <input
+                      value={r.name}
+                      onChange={(e) => renameRoom(r.id, e.target.value)}
+                      aria-label="Room name"
+                    />
+                  </EditableField>
+                ) : (
+                  <input
+                    value={r.name}
+                    onChange={(e) => renameRoom(r.id, e.target.value)}
+                    aria-label="Room name"
+                  />
+                )}
                 <span>{formatArea(r.area, plan.units)}</span>
                 {r.source === 'manual' && (
                   <button
@@ -168,8 +180,9 @@ export default function Inspector() {
       {selectedWall && (
         <div className="sel-panel" key={'w-' + selectedWall.id}>
           <h2>Selected wall</h2>
-          <label className="field">
-            Length (mm) — moves the end node
+          <EditableField label="Length (mm) — moves the end node"
+            value={`${Math.round(Math.hypot(selectedWall.end.x - selectedWall.start.x, selectedWall.end.y - selectedWall.start.y))} mm`}
+            compact={compact}>
             <input
               type="number" min="300" step="50"
               key={'len-' + selectedWall.id}
@@ -184,23 +197,21 @@ export default function Inspector() {
               }}
               onBlur={(e) => resizeWallLength(selectedWall.id, Number(e.target.value) || 0)}
             />
-          </label>
-          <label className="field">
-            Thickness (mm)
+          </EditableField>
+          <EditableField label="Thickness (mm)" value={`${selectedWall.thickness} mm`} compact={compact}>
             <input
               type="number" min="50" max="600" step="10"
               value={selectedWall.thickness}
               onChange={(e) => updateWall(selectedWall.id, { thickness: Number(e.target.value) || 150 })}
             />
-          </label>
-          <label className="field">
-            Height (mm)
+          </EditableField>
+          <EditableField label="Height (mm)" value={`${selectedWall.height} mm`} compact={compact}>
             <input
               type="number" min="1000" max="6000" step="100"
               value={selectedWall.height}
               onChange={(e) => updateWall(selectedWall.id, { height: Number(e.target.value) || 2400 })}
             />
-          </label>
+          </EditableField>
         </div>
       )}
 
@@ -215,35 +226,33 @@ export default function Inspector() {
         return (
           <div className="sel-panel" key={'o-' + selectedOpening.id}>
             <h2>Selected {selectedOpening.type}</h2>
-            <label className="field">
-              Width (mm)
+            <EditableField label="Width (mm)" value={`${Math.round(selectedOpening.width)} mm`} compact={compact}>
               <input type="number" min="300" step="50"
                 value={Math.round(selectedOpening.width)}
                 onChange={(e) => updateOpening(selectedOpening.id,
                   { width: clampWidth(Number(e.target.value) || 900) })} />
-            </label>
-            <label className="field">
-              Position along wall (mm)
+            </EditableField>
+            <EditableField label="Position along wall (mm)" value={`${Math.round(selectedOpening.offset)} mm`} compact={compact}>
               <input type="number" min="0" step="50"
                 value={Math.round(selectedOpening.offset)}
                 onChange={(e) => updateOpening(selectedOpening.id,
                   { offset: clampOffset(Number(e.target.value) || 0) })} />
-            </label>
-            <label className="field">
-              {selectedOpening.type === 'door' ? 'Height (mm)' : 'Glass height (mm)'}
+            </EditableField>
+            <EditableField
+              label={selectedOpening.type === 'door' ? 'Height (mm)' : 'Glass height (mm)'}
+              value={`${Math.round(selectedOpening.height)} mm`} compact={compact}>
               <input type="number" min="300" max={openingWall.height} step="50"
                 value={Math.round(selectedOpening.height)}
                 onChange={(e) => updateOpening(selectedOpening.id,
                   { height: Math.max(300, Math.min(Number(e.target.value) || 1200, openingWall.height)) })} />
-            </label>
+            </EditableField>
             {selectedOpening.type === 'window' && (
-              <label className="field">
-                Sill height (mm)
+              <EditableField label="Sill height (mm)" value={`${Math.round(selectedOpening.sillHeight)} mm`} compact={compact}>
                 <input type="number" min="0" max={openingWall.height - 300} step="50"
                   value={Math.round(selectedOpening.sillHeight)}
                   onChange={(e) => updateOpening(selectedOpening.id,
                     { sillHeight: Math.max(0, Math.min(Number(e.target.value) || 0, openingWall.height - selectedOpening.height)) })} />
-              </label>
+              </EditableField>
             )}
             {selectedOpening.type === 'door' && (() => {
               const issue = doorClearanceIssues(floor).find((i) => i.openingId === selectedOpening.id)
@@ -258,19 +267,22 @@ export default function Inspector() {
                 </p>
               )
             })()}
-            {selectedOpening.type === 'door' && (
-              <label className="field">
-                Door style
-                <select
-                  value={selectedOpening.variant || 'single'}
-                  onChange={(e) => updateOpening(selectedOpening.id, { variant: e.target.value })}
-                >
-                  <option value="single">Single swing</option>
-                  <option value="double">Double swing</option>
-                  <option value="sliding">Sliding</option>
-                </select>
-              </label>
-            )}
+            {selectedOpening.type === 'door' && (() => {
+              const styleLabels = { single: 'Single swing', double: 'Double swing', sliding: 'Sliding' }
+              const variant = selectedOpening.variant || 'single'
+              return (
+                <EditableField label="Door style" value={styleLabels[variant]} compact={compact}>
+                  <select
+                    value={variant}
+                    onChange={(e) => updateOpening(selectedOpening.id, { variant: e.target.value })}
+                  >
+                    <option value="single">Single swing</option>
+                    <option value="double">Double swing</option>
+                    <option value="sliding">Sliding</option>
+                  </select>
+                </EditableField>
+              )
+            })()}
             {selectedOpening.type === 'door' && (selectedOpening.variant || 'single') !== 'sliding' && (
               <div className="btn-row">
                 <button onClick={() => updateOpening(selectedOpening.id,
@@ -312,118 +324,120 @@ export default function Inspector() {
       {selectedStair && (
         <div className="sel-panel" key={'st-' + selectedStair.id}>
           <h2>Selected stairs</h2>
-          <label className="field">
-            Width (mm)
+          <EditableField label="Width (mm)" value={`${selectedStair.width} mm`} compact={compact}>
             <input type="number" min="600" max="3000" step="50"
               value={selectedStair.width}
               onChange={(e) => updateStair(selectedStair.id, { width: Math.max(600, Number(e.target.value) || 1000) })} />
-          </label>
-          <label className="field">
-            Length (mm)
+          </EditableField>
+          <EditableField label="Length (mm)" value={`${selectedStair.length} mm`} compact={compact}>
             <input type="number" min="1000" max="8000" step="100"
               value={selectedStair.length}
               onChange={(e) => updateStair(selectedStair.id, { length: Math.max(1000, Number(e.target.value) || 2800) })} />
-          </label>
-          <label className="field">
-            Rotation (°)
+          </EditableField>
+          <EditableField label="Rotation (°)" value={`${selectedStair.rotation}°`} compact={compact}>
             <input type="number" step="15"
               value={selectedStair.rotation}
               onChange={(e) => updateStair(selectedStair.id, { rotation: ((Number(e.target.value) || 0) % 360 + 360) % 360 })} />
-          </label>
+          </EditableField>
           <p className="hint">Rises to the floor above · the arrow marks UP</p>
         </div>
       )}
       {selectedFurniture && (
         <div className="sel-panel" key={'f-' + selectedFurniture.id}>
           <h2>Selected furniture</h2>
-          <label className="field">
-            Rotation (°)
+          <EditableField label="Rotation (°)" value={`${selectedFurniture.rotation}°`} compact={compact}>
             <input type="number" step="15"
               value={selectedFurniture.rotation}
               onChange={(e) => updateFurniture(selectedFurniture.id,
                 { rotation: ((Number(e.target.value) || 0) % 360 + 360) % 360 })} />
-          </label>
-          <label className="field">
-            Width (mm)
+          </EditableField>
+          <EditableField label="Width (mm)" value={`${selectedFurniture.dimensions.w} mm`} compact={compact}>
             <input type="number" min="100" step="50"
               value={selectedFurniture.dimensions.w}
               onChange={(e) => updateFurniture(selectedFurniture.id,
                 { dimensions: { ...selectedFurniture.dimensions, w: Math.max(100, Number(e.target.value) || 100) } })} />
-          </label>
-          <label className="field">
-            Depth (mm)
+          </EditableField>
+          <EditableField label="Depth (mm)" value={`${selectedFurniture.dimensions.d} mm`} compact={compact}>
             <input type="number" min="100" step="50"
               value={selectedFurniture.dimensions.d}
               onChange={(e) => updateFurniture(selectedFurniture.id,
                 { dimensions: { ...selectedFurniture.dimensions, d: Math.max(100, Number(e.target.value) || 100) } })} />
-          </label>
-          <label className="field">
-            Height (mm)
+          </EditableField>
+          <EditableField label="Height (mm)" value={`${selectedFurniture.dimensions.h} mm`} compact={compact}>
             <input type="number" min="100" step="50"
               value={selectedFurniture.dimensions.h}
               onChange={(e) => updateFurniture(selectedFurniture.id,
                 { dimensions: { ...selectedFurniture.dimensions, h: Math.max(100, Number(e.target.value) || 100) } })} />
-          </label>
+          </EditableField>
           <p className="hint">R rotates 90° · corner handles in the plan resize</p>
         </div>
       )}
 
-      <h2>Appearance</h2>
-      <div className="theme-picker" role="radiogroup" aria-label="Theme">
-        {Object.values(THEMES).map((t) => (
-          <button
-            key={t.id}
-            role="radio"
-            aria-checked={themeId === t.id}
-            className={themeId === t.id ? 'active' : ''}
-            title={t.label}
-            onClick={() => setTheme(t.id)}
-          >
-            <span className="theme-swatch">
-              {t.swatch.map((c, i) => (
-                <i key={i} style={{ background: c }} />
-              ))}
-            </span>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Appearance lives on the mobile sub-toolbar gear, so only desktop
+          needs the picker here. */}
+      {!compact && (
+        <>
+          <h2>Appearance</h2>
+          <div className="theme-picker" role="radiogroup" aria-label="Theme">
+            {Object.values(THEMES).map((t) => (
+              <button
+                key={t.id}
+                role="radio"
+                aria-checked={themeId === t.id}
+                className={themeId === t.id ? 'active' : ''}
+                title={t.label}
+                onClick={() => setTheme(t.id)}
+              >
+                <span className="theme-swatch">
+                  {t.swatch.map((c, i) => (
+                    <i key={i} style={{ background: c }} />
+                  ))}
+                </span>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2>Settings</h2>
-      <label className="field">
-        Roof (3D view)
-        <select value={plan.roof || 'none'} onChange={(e) => setRoof(e.target.value)}>
-          <option value="none">None (open top)</option>
-          <option value="flat">Flat roof</option>
-          <option value="pitched">Pitched (hip) roof</option>
-        </select>
-      </label>
+      {(() => {
+        const roofLabels = { none: 'None (open top)', flat: 'Flat roof', pitched: 'Pitched (hip) roof' }
+        return (
+          <EditableField label="Roof (3D view)" value={roofLabels[plan.roof || 'none']} compact={compact}>
+            <select value={plan.roof || 'none'} onChange={(e) => setRoof(e.target.value)}>
+              <option value="none">None (open top)</option>
+              <option value="flat">Flat roof</option>
+              <option value="pitched">Pitched (hip) roof</option>
+            </select>
+          </EditableField>
+        )
+      })()}
       {plan.roof === 'pitched' && (
-        <label className="field">
-          Roof pitch (°)
+        <EditableField label="Roof pitch (°)" value={`${plan.roofPitch || 30}°`} compact={compact}>
           <input type="number" min="10" max="55" step="5"
             value={plan.roofPitch || 30}
             onChange={(e) => setRoofPitch(Number(e.target.value) || 30)} />
-        </label>
+        </EditableField>
       )}
-      <label className="field">
-        Wall colour (3D)
+      <EditableField label="Wall colour (3D)"
+        value={WALL_COLORS.find((c) => c.value === plan.wallColor)?.label || 'Default'} compact={compact}>
         <select value={plan.wallColor || ''} onChange={(e) => setWallColor(e.target.value || null)}>
           <option value="">Default</option>
           {WALL_COLORS.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
-      </label>
-      <label className="field">
-        Floor colour (3D)
+      </EditableField>
+      <EditableField label="Floor colour (3D)"
+        value={FLOOR_COLORS.find((c) => c.value === plan.floorColor)?.label || 'Default'} compact={compact}>
         <select value={plan.floorColor || ''} onChange={(e) => setFloorColor(e.target.value || null)}>
           <option value="">Default</option>
           {FLOOR_COLORS.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
-      </label>
+      </EditableField>
       {(() => {
         const sun = { ...SUN_DEFAULTS, ...(plan.sun || {}) }
         const pos = solarPosition(sun)
@@ -439,28 +453,24 @@ export default function Inspector() {
             </label>
             {sun.enabled && (
               <>
-                <label className="field">
-                  Date
+                <EditableField label="Date" value={sun.dateISO} compact={compact}>
                   <input type="date" value={sun.dateISO}
                     onChange={(e) => e.target.value && setSunSettings({ dateISO: e.target.value })} />
-                </label>
-                <label className="field">
-                  Time — {hh}:{mm} · sun {sunLabel(pos)}
+                </EditableField>
+                <EditableField label={`Time — ${hh}:${mm} · sun ${sunLabel(pos)}`} value={`${hh}:${mm}`} compact={compact}>
                   <input type="range" min={300} max={1320} step={15}
                     value={sun.minutes}
                     onChange={(e) => setSunSettings({ minutes: Number(e.target.value) })} />
-                </label>
+                </EditableField>
                 <div className="field-pair">
-                  <label className="field">
-                    Latitude
+                  <EditableField label="Latitude" value={sun.lat} compact={compact}>
                     <input type="number" min="-89" max="89" step="0.01" value={sun.lat}
                       onChange={(e) => setSunSettings({ lat: Number(e.target.value) || 0 })} />
-                  </label>
-                  <label className="field">
-                    Longitude
+                  </EditableField>
+                  <EditableField label="Longitude" value={sun.lon} compact={compact}>
                     <input type="number" min="-180" max="180" step="0.01" value={sun.lon}
                       onChange={(e) => setSunSettings({ lon: Number(e.target.value) || 0 })} />
-                  </label>
+                  </EditableField>
                 </div>
                 <p className="hint">Plan top = North · low sun renders warm</p>
               </>
@@ -473,11 +483,10 @@ export default function Inspector() {
         const rates = { ...DEFAULT_RATES, ...(plan.costRates || {}) }
         const cost = computeCostLines(plan)
         const rateField = (key, label) => (
-          <label className="field" key={key}>
-            {label}
+          <EditableField key={key} label={label} value={rates[key]} compact={compact}>
             <input type="number" min="0" step="5" value={rates[key]}
               onChange={(e) => setCostRates({ [key]: Math.max(0, Number(e.target.value) || 0) })} />
-          </label>
+          </EditableField>
         )
         return (
           <>
@@ -504,11 +513,10 @@ export default function Inspector() {
             )}
             <details className="cost-rates">
               <summary>Unit rates ({rates.currency})</summary>
-              <label className="field">
-                Currency symbol
+              <EditableField label="Currency symbol" value={rates.currency} compact={compact}>
                 <input value={rates.currency} maxLength={4}
                   onChange={(e) => setCostRates({ currency: e.target.value || '€' })} />
-              </label>
+              </EditableField>
               <div className="field-pair">
                 {rateField('wallPerM2', 'Walls / m²')}
                 {rateField('floorPerM2', 'Floors / m²')}
@@ -529,13 +537,13 @@ export default function Inspector() {
           onChange={(e) => setShowDimensions(e.target.checked)} />
         Show exterior dimensions (2D + PDF)
       </label>
-      <label className="field">
-        Units
+      <EditableField label="Units"
+        value={plan.units === 'ft' ? 'Imperial (ft/in)' : 'Metric (mm/m)'} compact={compact}>
         <select value={plan.units} onChange={(e) => setUnits(e.target.value)}>
           <option value="mm">Metric (mm/m)</option>
           <option value="ft">Imperial (ft/in)</option>
         </select>
-      </label>
+      </EditableField>
       <p className="hint">
         Grid snap: {plan.gridSize} mm · Wall default: {DEFAULTS.wallThickness} mm thick,{' '}
         {DEFAULTS.wallHeight} mm high

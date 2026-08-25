@@ -10,6 +10,7 @@ import CommandPalette from './components/CommandPalette'
 import AiGenerate from './components/AiGenerate'
 import ActionIcon from './components/ActionIcon'
 import Logo from './components/Logo'
+import { useIsMobile } from './hooks/useIsMobile'
 
 const TYPE_LABELS = {
   wall: 'wall', opening: 'door/window', room: 'room', zone: 'zone', furniture: 'furniture', stair: 'stairs',
@@ -137,18 +138,9 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const fileRef = useRef(null)
 
-  // track the mobile breakpoint so the ☰ menu can hide actions the
-  // always-visible sub-toolbar already exposes (theme, undo, redo, delete,
-  // duplicate). Desktop ⌘K keeps the full list.
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches
-  )
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 760px)')
-    const onChange = (e) => setIsMobile(e.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
+  // the mobile breakpoint drives the ☰ menu filtering (hide actions the
+  // always-visible bars already expose) and dropping the menu search box
+  const isMobile = useIsMobile()
 
   // ⌘K opens the command palette from anywhere
   useEffect(() => {
