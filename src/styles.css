@@ -44,7 +44,9 @@ body { background: var(--paper); color: var(--ink); font-family: var(--font-ui);
   color: var(--topbar-ink);
   z-index: 20;
 }
-.logo { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; font-size: 14px; color: var(--accent); }
+.logo { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.005em; font-size: 16px; color: var(--topbar-ink); }
+.logo-mark { color: var(--topbar-ink); flex: none; display: block; }
+.logo-accent { color: var(--accent); }
 .plan-name {
   background: transparent;
   border: 1px solid transparent;
@@ -847,8 +849,9 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
 @media (max-width: 760px) {
   /* ---- topbar: compact, never overflow ---- */
   .topbar { gap: 8px; padding: 8px 10px; }
-  .topbar .logo,
   .topbar .plan-select { display: none; }
+  /* keep the compact mark on mobile, drop the wordmark text to save room */
+  .topbar .logo-word { display: none; }
   .plan-name { min-width: 0; flex: 1; font-size: 14px; padding: 6px 8px; }
   .view-switch button { padding: 8px 12px; }
   /* everything except the ☰ button collapses into the command palette */

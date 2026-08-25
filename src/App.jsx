@@ -9,6 +9,7 @@ import { getTheme, THEMES } from './model/themes'
 import CommandPalette from './components/CommandPalette'
 import AiGenerate from './components/AiGenerate'
 import ActionIcon from './components/ActionIcon'
+import Logo from './components/Logo'
 
 const TYPE_LABELS = {
   wall: 'wall', opening: 'door/window', room: 'room', zone: 'zone', furniture: 'furniture', stair: 'stairs',
@@ -305,7 +306,10 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         {/* project identity */}
-        <span className="logo">PLANFORGE</span>
+        <span className="logo" aria-label="PlanForge">
+          <Logo size={20} className="logo-mark" />
+          <span className="logo-word">Plan<span className="logo-accent">Forge</span></span>
+        </span>
         <select className="plan-select" value={plan.id}
           onChange={(e) => switchPlan(e.target.value)} aria-label="Open plan">
           {plansIndex.map((p) => (
