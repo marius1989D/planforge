@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
-// ⌘K command palette. `actions` = [{ label, keywords?, hint?, run }].
+// ⌘K command palette. `actions` = [{ label, keywords?, hint?, group?, run }].
 // Substring match across label+keywords, ranked by match position.
-export default function CommandPalette({ open, onClose, actions }) {
+// When `searchable` is false (the mobile ☰ menu) the search box is dropped and
+// the list is shown in full, split into sections by each action's `group`.
+export default function CommandPalette({ open, onClose, actions, searchable = true }) {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef(null)
@@ -11,12 +13,13 @@ export default function CommandPalette({ open, onClose, actions }) {
   useEffect(() => {
     if (open) {
       setQuery('')
-      setActive(0)
-      requestAnimationFrame(() => inputRef.current?.focus())
+      setActive(searchable ? 0 : -1)
+      if (searchable) requestAnimationFrame(() => inputRef.current?.focus())
     }
-  }, [open])
+  }, [open, searchable])
 
   const results = useMemo(() => {
+    if (!searchable) return actions
     const q = query.trim().toLowerCase()
     if (!q) return actions
     return actions
@@ -27,9 +30,9 @@ export default function CommandPalette({ open, onClose, actions }) {
       })
       .filter(Boolean)
       .sort((a, b) => a._score - b._score)
-  }, [query, actions])
+  }, [query, actions, searchable])
 
-  useEffect(() => setActive(0), [results.length])
+  useEffect(() => setActive(searchable ? 0 : -1), [results.length, searchable])
   useEffect(() => {
     listRef.current
       ?.querySelector('[data-active="true"]')
@@ -58,30 +61,39 @@ export default function CommandPalette({ open, onClose, actions }) {
   return (
     <div className="cmdk-backdrop" onMouseDown={onClose}>
       <div className="cmdk glass" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-label="Command palette">
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKey}
-          placeholder="Type a command… (walls, export, theme, 3D…)"
-          aria-label="Search commands"
-        />
+        {searchable && (
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onKey}
+            placeholder="Type a command… (walls, export, theme, 3D…)"
+            aria-label="Search commands"
+          />
+        )}
         <div className="cmdk-list" ref={listRef} role="listbox">
           {results.length === 0 && <div className="cmdk-empty">No matching commands</div>}
-          {results.map((a, i) => (
-            <button
-              key={a.label}
-              role="option"
-              aria-selected={i === active}
-              data-active={i === active}
-              className={i === active ? 'active' : ''}
-              onMouseEnter={() => setActive(i)}
-              onClick={() => run(a)}
-            >
-              <span>{a.label}</span>
-              {a.hint && <kbd>{a.hint}</kbd>}
-            </button>
-          ))}
+          {results.map((a, i) => {
+            // in menu mode, draw a divider whenever the section changes
+            const divider =
+              !searchable && i > 0 && a.group !== results[i - 1].group
+            return (
+              <React.Fragment key={a.label}>
+                {divider && <div className="cmdk-divider" role="separator" />}
+                <button
+                  role="option"
+                  aria-selected={i === active}
+                  data-active={i === active}
+                  className={i === active ? 'active' : ''}
+                  onMouseEnter={() => searchable && setActive(i)}
+                  onClick={() => run(a)}
+                >
+                  <span>{a.label}</span>
+                  {a.hint && <kbd>{a.hint}</kbd>}
+                </button>
+              </React.Fragment>
+            )
+          })}
         </div>
       </div>
     </div>

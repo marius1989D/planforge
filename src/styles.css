@@ -269,6 +269,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .tool-palette button:hover { background: var(--panel-2); color: var(--ink); }
 .tool-palette button.active .tool-ic { color: var(--accent-ink); }
 .tool-palette button.active { background: var(--accent); color: var(--accent-ink); }
+/* separator between the drawing tools and the Add-floor action */
+.tool-sep { flex: none; align-self: stretch; height: 1px; background: var(--line); margin: 4px 4px; }
 
 .status-bar {
   position: absolute;
@@ -550,6 +552,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   padding: 1px 5px;
 }
 .cmdk-empty { padding: 18px; text-align: center; color: var(--ink-soft); font-size: 13px; }
+.cmdk-divider { height: 1px; background: color-mix(in srgb, var(--line) 70%, transparent); margin: 6px 10px; }
 
 /* ---- context menu ---- */
 .context-menu {
@@ -887,6 +890,8 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
   }
   .tool-palette button span { display: block; } /* labels return on the mobile bar */
   .tool-palette .tool-ic { width: 21px; height: 21px; }
+  /* horizontal bar: the separator turns vertical */
+  .tool-sep { align-self: stretch; width: 1px; height: auto; margin: 4px 3px; }
 
   /* ---- status hint sits above the bottom toolbar ---- */
   .status-bar { max-width: calc(100% - 24px); bottom: 66px; }

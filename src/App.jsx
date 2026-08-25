@@ -266,9 +266,9 @@ export default function App() {
     { label: 'Draw zone', keywords: 'open plan area kitchen', hint: 'Z', run: () => { setView('2d'); setTool('zone') }, mobileBar: true },
     { label: 'Place stairs', keywords: 'staircase floor up', hint: 'S', run: () => { setView('2d'); setTool('stair') }, mobileBar: true },
     { label: 'Measure a distance', keywords: 'tape ruler length', hint: 'M', run: () => { setView('2d'); setTool('measure') }, mobileBar: true },
-    { label: 'Add a floor', keywords: 'storey level upstairs', run: addFloor },
+    { label: 'Add a floor', keywords: 'storey level upstairs', run: addFloor, mobileBar: true },
     {
-      label: 'Toggle sun & daylight simulation', keywords: 'sunlight shadows solar time',
+      label: 'Toggle sun & daylight simulation', keywords: 'sunlight shadows solar time', group: 'sun',
       run: () => {
         const st = usePlanStore.getState()
         st.setSunSettings({ enabled: !st.plan.sun?.enabled })
@@ -283,23 +283,23 @@ export default function App() {
     { label: 'Duplicate selected item', hint: '⌘D', run: duplicateSelected, mobileBar: true },
     { label: 'Delete selected item', keywords: 'remove', hint: 'Del', run: deleteSelected, mobileBar: true },
     {
-      label: 'Auto-furnish selected room…', keywords: 'furniture layout bedroom living kitchen fill',
+      label: 'Auto-furnish selected room…', keywords: 'furniture layout bedroom living kitchen fill', group: 'furnish',
       run: () => { setInspectorOpen(true) },
     },
-    { label: 'Export PNG image', keywords: 'download picture', run: handleExportPng },
-    { label: 'Export PDF drawing + schedules', keywords: 'download print', run: () => exportPlanPdf(plan, getTheme(themeId)) },
-    { label: 'Export JSON project file', keywords: 'download save', run: handleExportJson },
-    { label: 'New project', run: () => newPlan('Untitled Plan') },
-    { label: 'Duplicate project', keywords: 'copy plan', run: duplicatePlan },
-    { label: 'Import project…', keywords: 'open load json', run: () => fileRef.current?.click() },
-    { label: 'Generate a plan with AI…', keywords: 'ai claude describe magic create', run: () => setAiOpen(true) },
-    { label: 'Load the sample home', keywords: 'demo example bungalow try', run: loadSamplePlan },
+    { label: 'Export PNG image', keywords: 'download picture', group: 'export', run: handleExportPng },
+    { label: 'Export PDF drawing + schedules', keywords: 'download print', group: 'export', run: () => exportPlanPdf(plan, getTheme(themeId)) },
+    { label: 'Export JSON project file', keywords: 'download save', group: 'export', run: handleExportJson },
+    { label: 'New project', group: 'project', run: () => newPlan('Untitled Plan') },
+    { label: 'Duplicate project', keywords: 'copy plan', group: 'project', run: duplicatePlan },
+    { label: 'Import project…', keywords: 'open load json', group: 'project', run: () => fileRef.current?.click() },
+    { label: 'Generate a plan with AI…', keywords: 'ai claude describe magic create', group: 'ai', run: () => setAiOpen(true) },
+    { label: 'Load the sample home', keywords: 'demo example bungalow try', group: 'sample', run: loadSamplePlan },
     ...Object.values(THEMES).map((t) => ({
       label: `Theme: ${t.label}`, keywords: 'appearance color dark light', run: () => setTheme(t.id), mobileBar: true,
     })),
-    { label: 'Show dimensions', keywords: 'measurements on', run: () => setShowDimensions(true) },
-    { label: 'Hide dimensions', keywords: 'measurements off', run: () => setShowDimensions(false) },
-    { label: 'Open settings panel', keywords: 'inspector sidebar', run: () => setInspectorOpen(true) },
+    { label: 'Show dimensions', keywords: 'measurements on', group: 'dims', run: () => setShowDimensions(true) },
+    { label: 'Hide dimensions', keywords: 'measurements off', group: 'dims', run: () => setShowDimensions(false) },
+    { label: 'Open settings panel', keywords: 'inspector sidebar', group: 'settings', run: () => setInspectorOpen(true) },
   ]
   // on mobile, drop the actions the always-visible bars already expose
   const menuActions = isMobile ? paletteActions.filter((a) => !a.mobileBar) : paletteActions
@@ -405,6 +405,7 @@ export default function App() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         actions={menuActions}
+        searchable={!isMobile}
       />
     </div>
   )

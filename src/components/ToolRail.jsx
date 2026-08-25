@@ -19,6 +19,7 @@ const TOOLS = [
 export default function ToolRail() {
   const tool = usePlanStore((s) => s.tool)
   const setTool = usePlanStore((s) => s.setTool)
+  const addFloor = usePlanStore((s) => s.addFloor)
   return (
     <div className="tool-palette" role="toolbar" aria-label="Editor tools">
       {TOOLS.map(([id, label, hint]) => (
@@ -28,6 +29,13 @@ export default function ToolRail() {
           <span>{label}</span>
         </button>
       ))}
+      {/* an action, not a mode — set apart from the drawing tools */}
+      <span className="tool-sep" aria-hidden="true" />
+      <button className="tool-action" onClick={() => addFloor()}
+        title="Add a floor (storey)" aria-label="Add a floor">
+        <ToolIcon name="floor" />
+        <span>Floor</span>
+      </button>
     </div>
   )
 }

@@ -11,6 +11,7 @@ const PATHS = {
   zone: <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="3.2 3.4" />,
   stair: <path d="M4 20h4v-4h4v-4h4V8h4" />,
   measure: <><rect x="2.5" y="8" width="19" height="8" rx="1.4" /><path d="M7 8v3M11 8v4M15 8v3M19 8v4" /></>,
+  floor: <><rect x="3.5" y="14" width="17" height="5" rx="1.3" /><path d="M12 3.5v7M8.5 7h7" /></>,
 }
 
 export default function ToolIcon({ name, className = 'tool-ic' }) {
