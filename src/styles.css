@@ -1101,6 +1101,16 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
   }
   .inspector h2:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
 
+  /* floors stay on one scrollable row instead of wrapping to a second line */
+  .floor-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .floor-tabs::-webkit-scrollbar { display: none; }
+  .floor-tab-col, .floor-tabs .floor-add { flex: 0 0 auto; }
+
   /* ---- status hint sits above the bottom toolbar ---- */
   .status-bar { max-width: calc(100% - 24px); bottom: 66px; }
 
