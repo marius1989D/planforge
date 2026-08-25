@@ -35,6 +35,8 @@ export default function Inspector() {
   const setUnits = usePlanStore((s) => s.setUnits)
   const renameRoom = usePlanStore((s) => s.renameRoom)
   const deleteManualRoom = usePlanStore((s) => s.deleteManualRoom)
+  const deleteRoom = usePlanStore((s) => s.deleteRoom)
+  const setSelection = usePlanStore((s) => s.setSelection)
   const selection = usePlanStore((s) => s.selection)
   const updateWall = usePlanStore((s) => s.updateWall)
   const updateOpening = usePlanStore((s) => s.updateOpening)
@@ -74,6 +76,14 @@ export default function Inspector() {
   const addDemoRoom = useAddDemoRoom()
   const compact = useIsMobile()
   const [renameFloorOpen, setRenameFloorOpen] = useState(false)
+  const [renameRoomId, setRenameRoomId] = useState(null)
+
+  const deleteRoomConfirm = (r) => {
+    const extra = r.source === 'auto'
+      ? ' Its outer walls are removed; walls shared with a neighbour stay.'
+      : ''
+    if (confirm(`Delete "${r.name}"?${extra}`)) deleteRoom(r.id)
+  }
 
   // resizable bottom sheet (mobile): drag the top grip to set the panel height
   const asideRef = useRef(null)
@@ -218,40 +228,75 @@ export default function Inspector() {
         </div>
       )}
 
-      <h2>Rooms</h2>
+      <h2>{compact ? `${floor.name} layout` : 'Rooms'}</h2>
           <ul className="room-list">
-            {floor.rooms.map((r) => (
-              <li key={r.id}
-                className={(selection?.type === 'room' || selection?.type === 'zone') &&
-                  selection.id === r.id ? 'row-selected' : ''}>
-                {compact ? (
-                  <EditableField label="Room name" value={r.name} compact row>
-                    <input
-                      value={r.name}
-                      onChange={(e) => renameRoom(r.id, e.target.value)}
-                      aria-label="Room name"
-                    />
-                  </EditableField>
-                ) : (
+            {floor.rooms.map((r) => {
+              const selected = (selection?.type === 'room' || selection?.type === 'zone')
+                && selection.id === r.id
+              if (compact) {
+                // tapping the row only selects/highlights it; rename and delete
+                // fire only from their own icons
+                return (
+                  <li key={r.id} className={`room-row${selected ? ' row-selected' : ''}`}
+                    onClick={() => setSelection({ type: r.source === 'manual' ? 'zone' : 'room', id: r.id })}>
+                    <span className="room-name">{r.name}</span>
+                    <span className="room-area">{formatArea(r.area, plan.units)}</span>
+                    <button className="room-ic" title="Rename room" aria-label="Rename room"
+                      onClick={(e) => { e.stopPropagation(); setRenameRoomId(r.id) }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+                        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17z" /><path d="M13.5 6.5l3 3" />
+                      </svg>
+                    </button>
+                    <button className="room-ic danger" title="Delete room" aria-label="Delete room"
+                      onClick={(e) => { e.stopPropagation(); deleteRoomConfirm(r) }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+                        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
+                      </svg>
+                    </button>
+                  </li>
+                )
+              }
+              return (
+                <li key={r.id} className={selected ? 'row-selected' : ''}>
                   <input
                     value={r.name}
                     onChange={(e) => renameRoom(r.id, e.target.value)}
                     aria-label="Room name"
                   />
-                )}
-                <span>{formatArea(r.area, plan.units)}</span>
-                {r.source === 'manual' && (
-                  <button
-                    className="icon-btn"
-                    title="Delete zone"
-                    onClick={() => deleteManualRoom(r.id)}
-                  >
-                    ×
-                  </button>
-                )}
-              </li>
-            ))}
+                  <span>{formatArea(r.area, plan.units)}</span>
+                  {r.source === 'manual' && (
+                    <button
+                      className="icon-btn"
+                      title="Delete zone"
+                      onClick={() => deleteManualRoom(r.id)}
+                    >
+                      ×
+                    </button>
+                  )}
+                </li>
+              )
+            })}
           </ul>
+          {renameRoomId != null && (() => {
+            const r = floor.rooms.find((x) => x.id === renameRoomId)
+            if (!r) return null
+            return (
+              <div className="edit-pop-backdrop" onMouseDown={() => setRenameRoomId(null)}>
+                <div className="edit-pop" role="dialog" aria-label="Rename room"
+                  onMouseDown={(e) => e.stopPropagation()}>
+                  <div className="edit-pop-title">Room name</div>
+                  <div className="edit-pop-body">
+                    <input autoFocus value={r.name}
+                      onChange={(e) => renameRoom(r.id, e.target.value)} />
+                  </div>
+                  <button type="button" className="edit-pop-done"
+                    onClick={() => setRenameRoomId(null)}>Done</button>
+                </div>
+              </div>
+            )
+          })()}
         </>
       )}
 

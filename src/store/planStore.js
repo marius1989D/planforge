@@ -539,6 +539,35 @@ export const usePlanStore = create((set, get) => {
         ...f,
         rooms: f.rooms.filter((r) => !(r.id === id && r.source === 'manual')),
       })),
+    // Delete any room. A drawn zone is just removed. An auto room is defined by
+    // its walls, so we remove only its *external* walls (used by this room
+    // alone) and keep any wall shared with a neighbouring room, so that
+    // neighbour survives. Rooms then re-detect from the remaining walls.
+    deleteRoom: (roomId) => {
+      const target = activeFloorOf(get().plan).rooms.find((r) => r.id === roomId)
+      if (!target) return
+      if (target.source === 'manual') {
+        get().deleteManualRoom(roomId)
+      } else {
+        commitFloor((f) => {
+          const room = f.rooms.find((r) => r.id === roomId && r.source === 'auto')
+          if (!room) return f
+          const usage = new Map()
+          for (const r of f.rooms) {
+            if (r.source !== 'auto') continue
+            for (const id of r.wallIds || []) usage.set(id, (usage.get(id) || 0) + 1)
+          }
+          const remove = new Set((room.wallIds || []).filter((id) => (usage.get(id) || 0) <= 1))
+          if (remove.size === 0) return f
+          return {
+            ...f,
+            walls: f.walls.filter((w) => !remove.has(w.id)),
+            openings: f.openings.filter((o) => !remove.has(o.wallId)),
+          }
+        }, { recompute: true })
+      }
+      if (get().selection?.id === roomId) set({ selection: null })
+    },
     moveRoom: (roomId, dx, dy) =>
       commitFloor((f) => {
         const room = f.rooms.find((r) => r.id === roomId && r.source === 'manual')

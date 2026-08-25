@@ -500,6 +500,34 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .floor-ic:hover, .floor-ic:active { color: var(--accent); }
 .floor-ic.danger:hover, .floor-ic.danger:active { color: var(--danger); }
 
+/* mobile room rows: tap to highlight, with rename/delete icons per row */
+.room-row {
+  padding: 9px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.room-row.row-selected { border-color: var(--accent); }
+.room-row .room-name {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 14px;
+}
+.room-row .room-area {
+  flex: none; font-size: 12px; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.room-ic {
+  display: inline-flex; flex: none;
+  padding: 3px;
+  border: none; background: transparent;
+  color: var(--ink-soft); cursor: pointer;
+}
+.room-ic svg { width: 17px; height: 17px; display: block; }
+.room-ic:hover, .room-ic:active { color: var(--accent); }
+.room-ic.danger:hover, .room-ic.danger:active { color: var(--danger); }
+
 /* drag grip to resize the mobile bottom sheet — sticky so it stays reachable
    while the panel body scrolls under it */
 .sheet-grip {
