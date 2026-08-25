@@ -160,8 +160,8 @@ export default function Inspector() {
           onClick={() => addFloor()}>+</button>
       </div>
       {compact ? (
-        // the active floor's name is already shown on its tab, so just offer
-        // rename / delete actions rather than a redundant name field
+        // the active floor's name already shows on its tab, so just offer
+        // icon actions for the selected floor below the tabs
         <div className="floor-actions">
           <button className="floor-act" onClick={() => setRenameFloorOpen(true)}
             title="Rename floor" aria-label="Rename floor">
@@ -169,7 +169,6 @@ export default function Inspector() {
               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17z" /><path d="M13.5 6.5l3 3" />
             </svg>
-            <span>Rename</span>
           </button>
           {plan.floors.length > 1 && (
             <button className="floor-act danger" onClick={deleteActiveFloor}
@@ -178,7 +177,6 @@ export default function Inspector() {
                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
               </svg>
-              <span>Delete</span>
             </button>
           )}
         </div>
