@@ -148,39 +148,43 @@ export default function Inspector() {
         <>
           <h2>Floors</h2>
       <div className="floor-tabs" role="tablist" aria-label="Floors">
-        {plan.floors.map((f, i) => (
-          <button key={f.id} role="tab"
-            aria-selected={i === (plan.activeFloorIndex || 0)}
-            className={i === (plan.activeFloorIndex || 0) ? 'active' : ''}
-            onClick={() => setActiveFloor(i)}>
-            {f.name}
-          </button>
-        ))}
+        {plan.floors.map((f, i) => {
+          const active = i === (plan.activeFloorIndex || 0)
+          return (
+            <div className="floor-tab-col" key={f.id}>
+              <button role="tab" aria-selected={active}
+                className={active ? 'active' : ''}
+                onClick={() => setActiveFloor(i)}>
+                {f.name}
+              </button>
+              {/* icons hang under the selected tab and follow the selection */}
+              {compact && active && (
+                <div className="floor-ic-row">
+                  <button className="floor-ic" onClick={() => setRenameFloorOpen(true)}
+                    title="Rename floor" aria-label="Rename floor">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17z" /><path d="M13.5 6.5l3 3" />
+                    </svg>
+                  </button>
+                  {plan.floors.length > 1 && (
+                    <button className="floor-ic danger" onClick={deleteActiveFloor}
+                      title="Delete floor" aria-label="Delete floor">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+                        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
         <button className="floor-add" title="Add a floor above (copies the shell walls)"
           onClick={() => addFloor()}>+</button>
       </div>
-      {compact ? (
-        // the active floor's name already shows on its tab, so just offer
-        // icon actions for the selected floor below the tabs
-        <div className="floor-actions">
-          <button className="floor-act" onClick={() => setRenameFloorOpen(true)}
-            title="Rename floor" aria-label="Rename floor">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17z" /><path d="M13.5 6.5l3 3" />
-            </svg>
-          </button>
-          {plan.floors.length > 1 && (
-            <button className="floor-act danger" onClick={deleteActiveFloor}
-              title="Delete floor" aria-label="Delete floor">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
-              </svg>
-            </button>
-          )}
-        </div>
-      ) : (
+      {!compact && (
         <>
           <label className="field">
             Floor name

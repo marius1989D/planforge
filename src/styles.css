@@ -484,21 +484,21 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .field-options button:active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .field-options button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 
-/* floors: icon-only rename / delete for the selected floor (mobile) */
-.floor-actions { display: flex; gap: 8px; margin-top: -2px; }
-.floor-act {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel-2);
-  color: var(--ink);
+/* floors: each tab is a column so its rename/delete icons hang directly
+   under the selected floor and move with the selection (mobile) */
+.floor-tab-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.floor-ic-row { display: flex; gap: 14px; padding: 2px 0; }
+.floor-ic {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
   cursor: pointer;
 }
-.floor-act svg { width: 19px; height: 19px; }
-.floor-act.danger { color: var(--danger); }
-.floor-act:active { background: color-mix(in srgb, var(--accent) 8%, var(--panel-2)); }
+.floor-ic svg { width: 17px; height: 17px; display: block; }
+.floor-ic:hover, .floor-ic:active { color: var(--accent); }
+.floor-ic.danger:hover, .floor-ic.danger:active { color: var(--danger); }
 
 /* drag grip to resize the mobile bottom sheet — sticky so it stays reachable
    while the panel body scrolls under it */
@@ -790,7 +790,7 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
 }
 
 /* ---- floor tabs ---- */
-.floor-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.floor-tabs { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 5px; margin-bottom: 10px; }
 .floor-tabs button {
   border: 1.5px solid var(--line);
   background: transparent;
