@@ -498,7 +498,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
 }
 .cmdk input::placeholder { color: var(--ink-soft); opacity: 0.7; }
-.cmdk-list { overflow-y: auto; padding: 6px; }
+/* flex:1 + min-height:0 lets the list actually scroll inside the capped-height
+   palette instead of overflowing (and clipping) when there are many commands. */
+.cmdk-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 6px; }
 .cmdk-list button {
   width: 100%;
   display: flex;
@@ -641,7 +643,37 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
 .walk-pill:hover { border-color: var(--accent); color: var(--accent); }
 .walk-hint { pointer-events: none; cursor: default; color: var(--ink-soft); }
 
-/* ---- touch walk-mode: on-screen dual sticks + exit ---- */
+/* ---- touch walk-mode: move stick + swipe-look + zoom + exit ---- */
+/* transparent full-view layer that captures look swipes / pinch-zoom; the
+   stick, zoom and exit controls sit above it and handle their own touches. */
+.look-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  touch-action: none;
+}
+.walk-zoom {
+  position: absolute;
+  right: calc(16px + env(safe-area-inset-right));
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.walk-zoom button {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
 .joystick {
   position: absolute;
   bottom: calc(24px + env(safe-area-inset-bottom));

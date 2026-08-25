@@ -443,12 +443,11 @@ export default function Editor2D() {
       const dx = cur.x - drag.last.x
       const dy = cur.y - drag.last.y
       if (dx !== 0 || dy !== 0) {
-        moveNodes([
-          { from: drag.s, to: { x: drag.s.x + dx, y: drag.s.y + dy } },
-          { from: drag.e, to: { x: drag.e.x + dx, y: drag.e.y + dy } },
-        ])
-        drag.s = { x: drag.s.x + dx, y: drag.s.y + dy }
-        drag.e = { x: drag.e.x + dx, y: drag.e.y + dy }
+        // Move ONLY this wall, so it detaches from whatever shared its corners
+        // — you reshape one wall at a time. (moveNodes would drag every wall
+        // meeting at those corners along with it.) Junctions re-form on drop
+        // via healWalls if you land an endpoint back on another wall.
+        translateWalls([drag.id], dx, dy)
         drag.last = cur
       }
       return

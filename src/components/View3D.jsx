@@ -34,6 +34,14 @@ const isCoarsePointer = () =>
   typeof window !== 'undefined' &&
   (window.matchMedia?.('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)
 
+// Walk-mode field of view: a natural first-person default, zoomable between a
+// slight telephoto and a wide angle. The orbit view keeps its own fov (50).
+const WALK_FOV = 72
+const WALK_FOV_MIN = 38
+const WALK_FOV_MAX = 90
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
+const twoTouchDist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+
 // theme-driven materials; zone overlay colors reuse the plan zone ramp
 const materialsFor = (T) => ({
   wall: T.three.wall,
@@ -274,25 +282,40 @@ function WalkMode({ plan, elevations, input, mobile, onExit }) {
     const e0 = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ')
     yaw.current = e0.y
     pitch.current = e0.x
+    // immersive first-person fov while walking; restore the orbit fov on exit
+    const orbitFov = camera.fov
+    if (mobile) {
+      camera.fov = input.current.fov
+      camera.updateProjectionMatrix()
+    }
     const t = mobile ? null : setTimeout(() => controlsRef.current?.lock?.(), 60)
     return () => {
       if (t) clearTimeout(t)
       window.removeEventListener('keydown', dn)
       window.removeEventListener('keyup', up)
+      camera.fov = orbitFov
+      camera.updateProjectionMatrix()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useFrame((_, delta) => {
     const k = keys.current
-    // touch look: right stick turns the camera; clamp pitch to avoid flipping
+    // touch look: swiping the screen accumulates a pixel delta we apply here,
+    // so turn speed tracks the finger 1:1 and stops the instant it lifts.
     if (mobile) {
-      const look = input.current.look
-      const lookSpeed = 2.4
-      yaw.current -= look.x * lookSpeed * Math.min(delta, 0.05)
-      pitch.current -= look.y * lookSpeed * Math.min(delta, 0.05)
+      const ld = input.current.lookDelta
+      const lookSens = 0.0045 // radians per pixel swiped
+      yaw.current -= ld.x * lookSens
+      pitch.current -= ld.y * lookSens
       pitch.current = Math.max(-1.3, Math.min(1.3, pitch.current))
+      ld.x = 0; ld.y = 0
       camera.rotation.set(pitch.current, yaw.current, 0, 'YXZ')
+      // ease the fov toward the pinch/button target
+      if (Math.abs(camera.fov - input.current.fov) > 0.01) {
+        camera.fov += (input.current.fov - camera.fov) * Math.min(1, delta * 12)
+        camera.updateProjectionMatrix()
+      }
     }
     const run = k.ShiftLeft || k.ShiftRight
     const step = (run ? 4.2 : 2.2) * Math.min(delta, 0.05)
@@ -362,8 +385,10 @@ function Joystick({ side, label, onChange }) {
     apply(t.clientX, t.clientY)
   }
   const move = (e) => {
+    // touch-action:none on .joystick handles gesture prevention; React's
+    // passive touch listeners can't preventDefault anyway.
     for (const t of e.changedTouches) {
-      if (t.identifier === touchId.current) { apply(t.clientX, t.clientY); e.preventDefault() }
+      if (t.identifier === touchId.current) apply(t.clientX, t.clientY)
     }
   }
   const end = (e) => {
@@ -387,6 +412,55 @@ function Joystick({ side, label, onChange }) {
     >
       <div className="joystick-knob" style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
     </div>
+  )
+}
+
+// Full-screen touch layer behind the walk-mode controls: one finger swipes to
+// look (delta fed to the walk loop), two fingers pinch to zoom the fov.
+function LookSurface({ input }) {
+  const last = React.useRef(null)
+  const pinch = React.useRef(null)
+
+  const start = (e) => {
+    if (e.touches.length >= 2) {
+      pinch.current = twoTouchDist(e.touches[0], e.touches[1])
+      last.current = null
+    } else {
+      last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    }
+  }
+  const move = (e) => {
+    // no preventDefault here: React touch listeners are passive, so it throws
+    // and is a no-op. touch-action:none on .look-surface stops scrolling.
+    if (e.touches.length >= 2) {
+      const d = twoTouchDist(e.touches[0], e.touches[1])
+      if (pinch.current) {
+        // fingers apart (ratio > 1) → zoom in → narrower fov
+        input.current.fov = clamp(input.current.fov / (d / pinch.current), WALK_FOV_MIN, WALK_FOV_MAX)
+      }
+      pinch.current = d
+      last.current = null
+      return
+    }
+    const t = e.touches[0]
+    if (last.current) {
+      input.current.lookDelta.x += t.clientX - last.current.x
+      input.current.lookDelta.y += t.clientY - last.current.y
+    }
+    last.current = { x: t.clientX, y: t.clientY }
+  }
+  const end = (e) => {
+    if (e.touches.length < 2) pinch.current = null
+    last.current = e.touches.length ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null
+  }
+  return (
+    <div
+      className="look-surface"
+      onTouchStart={start}
+      onTouchMove={move}
+      onTouchEnd={end}
+      onTouchCancel={end}
+    />
   )
 }
 
@@ -494,8 +568,13 @@ export default function View3D() {
   }, [ground.walls, topHeightM])
 
   const isTouch = useMemo(() => isCoarsePointer(), [])
-  // shared control input for touch walk mode: left stick moves, right looks
-  const walkInput = React.useRef({ move: { x: 0, y: 0 }, look: { x: 0, y: 0 } })
+  // shared control input for touch walk mode: left stick moves; swiping the
+  // screen accumulates a look delta; pinch / buttons drive the target fov.
+  const walkInput = React.useRef({
+    move: { x: 0, y: 0 },
+    lookDelta: { x: 0, y: 0 },
+    fov: WALK_FOV,
+  })
 
   return (
     <div className="view3d" style={{ background: T.three.bg }}>
@@ -588,10 +667,16 @@ export default function View3D() {
       )}
       {walkMode && isTouch && (
         <>
+          {/* look/zoom layer sits behind the stick + buttons */}
+          <LookSurface input={walkInput} />
           <Joystick side="left" label="Move"
             onChange={(v) => { walkInput.current.move = v }} />
-          <Joystick side="right" label="Look"
-            onChange={(v) => { walkInput.current.look = v }} />
+          <div className="walk-zoom">
+            <button aria-label="Zoom in"
+              onClick={() => { walkInput.current.fov = clamp(walkInput.current.fov - 8, WALK_FOV_MIN, WALK_FOV_MAX) }}>＋</button>
+            <button aria-label="Zoom out"
+              onClick={() => { walkInput.current.fov = clamp(walkInput.current.fov + 8, WALK_FOV_MIN, WALK_FOV_MAX) }}>－</button>
+          </div>
           <button className="walk-exit glass" onClick={() => setWalkMode(false)}>
             ✕ Exit
           </button>
