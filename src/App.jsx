@@ -3,6 +3,7 @@ import { usePlanStore } from './store/planStore'
 import Editor2D from './components/Editor2D'
 import View3D from './components/View3D'
 import Inspector from './components/Inspector'
+import ToolRail from './components/ToolRail'
 import { exportPlanPdf } from './export/pdfExport'
 import { getTheme, THEMES } from './model/themes'
 import CommandPalette from './components/CommandPalette'
@@ -266,6 +267,7 @@ export default function App() {
       </header>
 
       <main className="workspace">
+        {view === '2d' && <ToolRail />}
         {view === '2d' ? <Editor2D /> : <View3D />}
         <Inspector />
       </main>

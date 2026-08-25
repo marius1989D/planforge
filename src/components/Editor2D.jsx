@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { Stage, Layer, Line, Group, Text, Circle, Arc, Rect } from 'react-konva'
-import ToolIcon from './ToolIcon'
 import { usePlanStore, activeFloorOf } from '../store/planStore'
 import { doorClearanceIssues } from '../geometry/clearanceGeo'
 import {
@@ -1336,25 +1335,7 @@ export default function Editor2D() {
         </Layer>
       </Stage>
 
-      {/* tool palette overlay */}
-      <div className="tool-palette" role="toolbar" aria-label="Editor tools">
-        {[
-          ['select', 'Select', 'Select (V)'],
-          ['wall', 'Wall', 'Draw walls (W)'],
-          ['door', 'Door', 'Place door (D)'],
-          ['window', 'Window', 'Place window (N)'],
-          ['furniture', 'Furniture', 'Place furniture (F)'],
-          ['zone', 'Zone', 'Draw zone (Z)'],
-          ['stair', 'Stairs', 'Place stairs (S)'],
-          ['measure', 'Measure', 'Tape measure (M)'],
-        ].map(([id, label, hint]) => (
-          <button key={id} className={tool === id ? 'active' : ''}
-            onClick={() => switchTool(id)} title={hint} aria-label={hint}>
-            <ToolIcon name={id === 'stair' ? 'stair' : id} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
+      {/* the tool rail now lives in the workspace as a flex sibling (ToolRail) */}
       {tool === 'wall' && (
         <div className="wall-options" role="group" aria-label="Wall thickness">
           <span>Thickness</span>

@@ -120,30 +120,34 @@ body { background: var(--paper); color: var(--ink); font-family: var(--font-ui);
   box-shadow: var(--shadow);
 }
 
-/* ---- inspector: floating card, collapsible ---- */
+/* ---- inspector: docked right panel, collapsible ---- */
 .inspector {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  bottom: 12px;
-  width: 272px;
-  padding: 18px 16px;
+  flex: 0 0 auto;
+  width: 288px;
+  padding: 16px;
   overflow-y: auto;
-  z-index: 10;
-  animation: panelIn 200ms ease;
+  background: var(--panel);
+  border: none;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 5;
 }
 .inspector-rail {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  width: 40px;
-  height: 40px;
-  font-size: 17px;
+  flex: 0 0 auto;
+  width: 46px;
+  border: none;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--panel);
+  z-index: 5;
+  font-size: 18px;
   color: var(--ink-soft);
   cursor: pointer;
   display: grid;
-  place-content: center;
+  place-content: start center;
+  padding-top: 14px;
 }
 .inspector-rail:hover { color: var(--accent); }
 .inspector-collapse {
@@ -230,19 +234,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 /* Desktop: docked vertical icon rail on the left edge (icon-only, labels in
    tooltips). The mobile block below turns it back into a bottom bar. */
 .tool-palette {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   padding: 10px 6px;
-  z-index: 10;
+  z-index: 5;
   background: var(--rail-bg);
   border-right: 1px solid var(--line);
-  animation: panelIn 200ms ease;
 }
 .tool-palette button {
   display: flex;
@@ -854,7 +854,9 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
 
   /* ---- tools dock to the bottom, full width, scrollable ---- */
   .tool-palette {
+    position: fixed;
     top: auto; bottom: 0; left: 0; right: 0;
+    z-index: 30;
     width: 100%; border-radius: 0;
     flex-direction: row;
     border-right: none;
@@ -885,18 +887,27 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
 
   /* ---- inspector becomes a bottom sheet ---- */
   .inspector {
+    position: fixed;
     top: auto; left: 0; right: 0; bottom: 0;
     width: 100%; max-height: 78dvh;
+    border: none;
+    border-top: 1px solid var(--line);
     border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
     padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
     z-index: 40;
     animation: sheetIn 220ms ease;
   }
   /* the "open panel" rail becomes a floating button above the toolbar */
   .inspector-rail {
+    position: fixed;
     top: auto; bottom: 66px; right: 12px;
     width: 46px; height: 46px;
+    border: none;
     border-radius: 50%;
+    box-shadow: var(--shadow);
+    place-content: center;
+    padding-top: 0;
     font-size: 20px;
   }
 
