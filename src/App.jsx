@@ -136,6 +136,19 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const fileRef = useRef(null)
 
+  // track the mobile breakpoint so the ☰ menu can hide actions the
+  // always-visible sub-toolbar already exposes (theme, undo, redo, delete,
+  // duplicate). Desktop ⌘K keeps the full list.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 760px)')
+    const onChange = (e) => setIsMobile(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   // ⌘K opens the command palette from anywhere
   useEffect(() => {
     const onKey = (e) => {
@@ -238,6 +251,56 @@ export default function App() {
     reader.readAsText(file)
   }
 
+  // full command set (desktop ⌘K). On mobile the sub-toolbar already covers
+  // theme switching + undo/redo/delete/duplicate, so those are filtered out of
+  // the ☰ menu to avoid duplicates.
+  const paletteActions = [
+    { label: 'Select tool', keywords: 'pointer move', hint: 'V', run: () => { setView('2d'); setTool('select') } },
+    { label: 'Draw walls', keywords: 'wall tool', hint: 'W', run: () => { setView('2d'); setTool('wall') } },
+    { label: 'Place door', keywords: 'opening', hint: 'D', run: () => { setView('2d'); setTool('door') } },
+    { label: 'Place window', keywords: 'opening glass', hint: 'N', run: () => { setView('2d'); setTool('window') } },
+    { label: 'Place furniture', keywords: 'sofa bed table library', hint: 'F', run: () => { setView('2d'); setTool('furniture') } },
+    { label: 'Draw zone', keywords: 'open plan area kitchen', hint: 'Z', run: () => { setView('2d'); setTool('zone') } },
+    { label: 'Place stairs', keywords: 'staircase floor up', hint: 'S', run: () => { setView('2d'); setTool('stair') } },
+    { label: 'Measure a distance', keywords: 'tape ruler length', hint: 'M', run: () => { setView('2d'); setTool('measure') } },
+    { label: 'Add a floor', keywords: 'storey level upstairs', run: addFloor },
+    {
+      label: 'Toggle sun & daylight simulation', keywords: 'sunlight shadows solar time',
+      run: () => {
+        const st = usePlanStore.getState()
+        st.setSunSettings({ enabled: !st.plan.sun?.enabled })
+        setView('3d')
+      },
+    },
+    { label: 'Switch to 2D plan', keywords: 'view editor', run: () => setView('2d') },
+    { label: 'Switch to 3D view', keywords: 'view model', run: () => setView('3d') },
+    { label: 'Walk through the home', keywords: 'first person walkthrough tour explore', run: () => { setView('3d'); setWalkMode(true) } },
+    { label: 'Undo', hint: '⌘Z', run: undo, subbar: true },
+    { label: 'Redo', hint: '⇧⌘Z', run: redo, subbar: true },
+    { label: 'Duplicate selected item', hint: '⌘D', run: duplicateSelected, subbar: true },
+    { label: 'Delete selected item', keywords: 'remove', hint: 'Del', run: deleteSelected, subbar: true },
+    {
+      label: 'Auto-furnish selected room…', keywords: 'furniture layout bedroom living kitchen fill',
+      run: () => { setInspectorOpen(true) },
+    },
+    { label: 'Export PNG image', keywords: 'download picture', run: handleExportPng },
+    { label: 'Export PDF drawing + schedules', keywords: 'download print', run: () => exportPlanPdf(plan, getTheme(themeId)) },
+    { label: 'Export JSON project file', keywords: 'download save', run: handleExportJson },
+    { label: 'New project', run: () => newPlan('Untitled Plan') },
+    { label: 'Duplicate project', keywords: 'copy plan', run: duplicatePlan },
+    { label: 'Import project…', keywords: 'open load json', run: () => fileRef.current?.click() },
+    { label: 'Generate a plan with AI…', keywords: 'ai claude describe magic create', run: () => setAiOpen(true) },
+    { label: 'Load the sample home', keywords: 'demo example bungalow try', run: loadSamplePlan },
+    ...Object.values(THEMES).map((t) => ({
+      label: `Theme: ${t.label}`, keywords: 'appearance color dark light', run: () => setTheme(t.id), subbar: true,
+    })),
+    { label: 'Show dimensions', keywords: 'measurements on', run: () => setShowDimensions(true) },
+    { label: 'Hide dimensions', keywords: 'measurements off', run: () => setShowDimensions(false) },
+    { label: 'Open settings panel', keywords: 'inspector sidebar', run: () => setInspectorOpen(true) },
+  ]
+  // on mobile, drop the actions duplicated by the sub-toolbar
+  const menuActions = isMobile ? paletteActions.filter((a) => !a.subbar) : paletteActions
+
   return (
     <div className="app">
       <header className="topbar">
@@ -335,50 +398,7 @@ export default function App() {
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
-        actions={[
-          { label: 'Select tool', keywords: 'pointer move', hint: 'V', run: () => { setView('2d'); setTool('select') } },
-          { label: 'Draw walls', keywords: 'wall tool', hint: 'W', run: () => { setView('2d'); setTool('wall') } },
-          { label: 'Place door', keywords: 'opening', hint: 'D', run: () => { setView('2d'); setTool('door') } },
-          { label: 'Place window', keywords: 'opening glass', hint: 'N', run: () => { setView('2d'); setTool('window') } },
-          { label: 'Place furniture', keywords: 'sofa bed table library', hint: 'F', run: () => { setView('2d'); setTool('furniture') } },
-          { label: 'Draw zone', keywords: 'open plan area kitchen', hint: 'Z', run: () => { setView('2d'); setTool('zone') } },
-          { label: 'Place stairs', keywords: 'staircase floor up', hint: 'S', run: () => { setView('2d'); setTool('stair') } },
-          { label: 'Measure a distance', keywords: 'tape ruler length', hint: 'M', run: () => { setView('2d'); setTool('measure') } },
-          { label: 'Add a floor', keywords: 'storey level upstairs', run: addFloor },
-          {
-            label: 'Toggle sun & daylight simulation', keywords: 'sunlight shadows solar time',
-            run: () => {
-              const st = usePlanStore.getState()
-              st.setSunSettings({ enabled: !st.plan.sun?.enabled })
-              setView('3d')
-            },
-          },
-          { label: 'Switch to 2D plan', keywords: 'view editor', run: () => setView('2d') },
-          { label: 'Switch to 3D view', keywords: 'view model', run: () => setView('3d') },
-          { label: 'Walk through the home', keywords: 'first person walkthrough tour explore', run: () => { setView('3d'); setWalkMode(true) } },
-          { label: 'Undo', hint: '⌘Z', run: undo },
-          { label: 'Redo', hint: '⇧⌘Z', run: redo },
-          { label: 'Duplicate selected item', hint: '⌘D', run: duplicateSelected },
-          { label: 'Delete selected item', keywords: 'remove', hint: 'Del', run: deleteSelected },
-          {
-            label: 'Auto-furnish selected room…', keywords: 'furniture layout bedroom living kitchen fill',
-            run: () => { setInspectorOpen(true) },
-          },
-          { label: 'Export PNG image', keywords: 'download picture', run: handleExportPng },
-          { label: 'Export PDF drawing + schedules', keywords: 'download print', run: () => exportPlanPdf(plan, getTheme(themeId)) },
-          { label: 'Export JSON project file', keywords: 'download save', run: handleExportJson },
-          { label: 'New project', run: () => newPlan('Untitled Plan') },
-          { label: 'Duplicate project', keywords: 'copy plan', run: duplicatePlan },
-          { label: 'Import project…', keywords: 'open load json', run: () => fileRef.current?.click() },
-          { label: 'Generate a plan with AI…', keywords: 'ai claude describe magic create', run: () => setAiOpen(true) },
-          { label: 'Load the sample home', keywords: 'demo example bungalow try', run: loadSamplePlan },
-          ...Object.values(THEMES).map((t) => ({
-            label: `Theme: ${t.label}`, keywords: 'appearance color dark light', run: () => setTheme(t.id),
-          })),
-          { label: 'Show dimensions', keywords: 'measurements on', run: () => setShowDimensions(true) },
-          { label: 'Hide dimensions', keywords: 'measurements off', run: () => setShowDimensions(false) },
-          { label: 'Open settings panel', keywords: 'inspector sidebar', run: () => setInspectorOpen(true) },
-        ]}
+        actions={menuActions}
       />
     </div>
   )
