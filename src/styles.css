@@ -508,6 +508,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: var(--radius); /* rounds the selected-row highlight */
   cursor: pointer;
 }
+/* no glow-and-fade on tap: the tint appears on select and simply stays
+   (selector is specific enough to beat .room-list li.row-selected) */
+.room-list li.room-row.row-selected { animation: none; }
 .room-row .room-name {
   flex: 1; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
