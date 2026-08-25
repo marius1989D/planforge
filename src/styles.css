@@ -488,17 +488,19 @@ button:focus-visible, input:focus-visible, select:focus-visible {
    under the selected floor and move with the selection (mobile) */
 .floor-tab-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .floor-ic-row { display: flex; gap: 14px; padding: 2px 0; }
-.floor-ic {
+/* scoped so it beats the .floor-tabs pill-button styling (border/radius/pad) */
+.floor-ic-row .floor-ic {
   display: inline-flex;
-  padding: 2px;
+  padding: 0;
   border: none;
-  background: transparent;
+  border-radius: 0;
+  background: none;
   color: var(--ink-soft);
   cursor: pointer;
 }
-.floor-ic svg { width: 17px; height: 17px; display: block; }
-.floor-ic:hover, .floor-ic:active { color: var(--accent); }
-.floor-ic.danger:hover, .floor-ic.danger:active { color: var(--danger); }
+.floor-ic-row .floor-ic svg { width: 15px; height: 15px; display: block; }
+.floor-ic-row .floor-ic:hover, .floor-ic-row .floor-ic:active { color: var(--accent); }
+.floor-ic-row .floor-ic.danger:hover, .floor-ic-row .floor-ic.danger:active { color: var(--danger); }
 
 /* mobile room rows: tap to highlight, with rename/delete icons per row */
 .room-row {
