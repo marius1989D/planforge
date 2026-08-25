@@ -227,35 +227,40 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 /* ---- editor overlays ---- */
+/* Desktop: docked vertical icon rail on the left edge (icon-only, labels in
+   tooltips). The mobile block below turns it back into a bottom bar. */
 .tool-palette {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 0;
+  left: 0;
+  bottom: 0;
   display: flex;
-  gap: 3px;
-  padding: 5px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
   z-index: 10;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
+  background: var(--rail-bg);
+  border-right: 1px solid var(--line);
   animation: panelIn 200ms ease;
 }
 .tool-palette button {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   border: none;
   background: transparent;
-  padding: 7px 11px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
   border-radius: var(--radius);
   cursor: pointer;
-  color: var(--ink-soft);
+  color: var(--rail-ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
 }
-.tool-palette .tool-ic { width: 17px; height: 17px; flex: none; }
+.tool-palette button span { display: none; } /* desktop rail shows icons only */
+.tool-palette .tool-ic { width: 20px; height: 20px; flex: none; }
 .tool-palette button:hover { background: var(--panel-2); color: var(--ink); }
 .tool-palette button.active .tool-ic { color: var(--accent-ink); }
 .tool-palette button.active { background: var(--accent); color: var(--accent-ink); }
@@ -853,6 +858,9 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
   .tool-palette {
     top: auto; bottom: 0; left: 0; right: 0;
     width: 100%; border-radius: 0;
+    flex-direction: row;
+    border-right: none;
+    border-top: 1px solid var(--line);
     gap: 2px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     overflow-x: auto;
@@ -864,11 +872,14 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
     flex: 0 0 auto;
     flex-direction: column;
     gap: 3px;
+    width: auto;
+    height: auto;
     padding: 7px 12px;
     font-size: 11px;
     min-width: 56px;
     justify-content: center;
   }
+  .tool-palette button span { display: block; } /* labels return on the mobile bar */
   .tool-palette .tool-ic { width: 21px; height: 21px; }
 
   /* ---- status hint sits above the bottom toolbar ---- */
