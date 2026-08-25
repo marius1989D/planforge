@@ -1,23 +1,35 @@
 :root {
-  --ink: #22303c;
-  --ink-soft: #5a6b7a;
-  --paper: #f4f6f8;
+  /* Defaults = Studio, so the shell looks right before JS applies the active
+     design system (and if a token is ever missing). App.jsx overrides these. */
+  --ink: #2b2825;
+  --ink-soft: #857c70;
+  --paper: #f7f4ef;
   --panel: #ffffff;
-  --line: #dbe3e9;
-  --accent: #1f6f8b;
+  --panel-2: #faf6f0;
+  --line: #ece5da;
+  --accent: #cf6f4e;
   --accent-ink: #ffffff;
   --danger: #c0392b;
-  --topbar-bg: #22303c;
-  --topbar-border: #4a5c6b;
-  --topbar-ink: #eef3f7;
-  --topbar-ink-soft: #b9c6d1;
-  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --success: #4c9e86;
+  --rail-bg: #ffffff;
+  --rail-ink: #8a8074;
+  --topbar-bg: #ffffff;
+  --topbar-border: #ece5da;
+  --topbar-ink: #2b2825;
+  --topbar-ink-soft: #857c70;
+  --font-ui: "Figtree", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-mono: "Figtree", system-ui, sans-serif;
+  --radius: 11px;
+  --radius-lg: 16px;
+  --shadow: 0 1px 2px rgba(43,40,37,.05), 0 10px 30px -12px rgba(43,40,37,.18);
+  font-family: var(--font-ui);
 }
 
 * { box-sizing: border-box; margin: 0; }
 
 html, body, #root { height: 100%; }
-body { background: var(--paper); color: var(--ink); }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-ui); }
 
 .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
@@ -27,19 +39,19 @@ body { background: var(--paper); color: var(--ink); }
   align-items: center;
   gap: 14px;
   padding: 9px 16px;
-  background: color-mix(in srgb, var(--topbar-bg) 88%, transparent);
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  border-bottom: 1px solid color-mix(in srgb, var(--topbar-border) 60%, transparent);
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--topbar-border);
   color: var(--topbar-ink);
   z-index: 20;
 }
-.logo { font-weight: 700; letter-spacing: 0.18em; font-size: 14px; }
+.logo { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; font-size: 14px; color: var(--accent); }
 .plan-name {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius);
   color: inherit;
+  font-family: var(--font-display);
+  font-weight: 600;
   font-size: 15px;
   padding: 6px 10px;
   min-width: 180px;
@@ -49,7 +61,7 @@ body { background: var(--paper); color: var(--ink); }
   outline: none;
   background: rgba(255, 255, 255, 0.06);
 }
-.view-switch { display: flex; border: 1px solid var(--topbar-border); border-radius: 8px; overflow: hidden; }
+.view-switch { display: flex; border: 1px solid var(--topbar-border); border-radius: calc(var(--radius) + 2px); overflow: hidden; }
 .view-switch button {
   background: transparent;
   border: none;
@@ -64,12 +76,13 @@ body { background: var(--paper); color: var(--ink); }
   background: transparent;
   border: 1px solid var(--topbar-border);
   color: var(--topbar-ink);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 7px 14px;
   font-size: 13px;
   cursor: pointer;
 }
-.topbar-actions button:hover { background: rgba(255, 255, 255, 0.08); }
+.topbar-actions button:hover:not(:disabled) { background: var(--panel-2); border-color: var(--accent); }
+.topbar-actions button:disabled { opacity: .45; cursor: default; }
 
 /* ---- workspace ---- */
 .workspace { flex: 1; display: flex; min-height: 0; }
@@ -99,14 +112,12 @@ body { background: var(--paper); color: var(--ink); }
   gap: 4px;
 }
 
-/* ---- glass panel system ---- */
+/* ---- panel system: solid surfaces, theme radius + shadow ---- */
 .glass {
-  background: color-mix(in srgb, var(--panel) 80%, transparent);
-  backdrop-filter: blur(16px) saturate(1.25);
-  -webkit-backdrop-filter: blur(16px) saturate(1.25);
-  border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
-  border-radius: 14px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
 }
 
 /* ---- inspector: floating card, collapsible ---- */
@@ -150,6 +161,7 @@ body { background: var(--paper); color: var(--ink); }
 .inspector-collapse:hover { color: var(--ink); background: color-mix(in srgb, var(--line) 40%, transparent); }
 @keyframes panelIn { from { opacity: 0; transform: translateX(10px); } }
 .inspector h2 {
+  font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -163,7 +175,7 @@ body { background: var(--paper); color: var(--ink); }
   row-gap: 6px;
   font-size: 14px;
 }
-.inspector dd { font-variant-numeric: tabular-nums; font-weight: 600; }
+.inspector dd { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .field select {
   padding: 7px 8px;
@@ -220,26 +232,26 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   top: 12px;
   left: 12px;
   display: flex;
-  gap: 4px;
-  padding: 4px;
+  gap: 3px;
+  padding: 5px;
   z-index: 10;
-  background: color-mix(in srgb, var(--panel) 80%, transparent);
-  backdrop-filter: blur(16px) saturate(1.25);
-  -webkit-backdrop-filter: blur(16px) saturate(1.25);
-  border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   animation: panelIn 200ms ease;
 }
 .tool-palette button {
   border: none;
   background: transparent;
-  padding: 7px 14px;
+  padding: 7px 12px;
   font-size: 13px;
-  border-radius: 6px;
+  font-weight: 500;
+  border-radius: var(--radius);
   cursor: pointer;
   color: var(--ink-soft);
 }
+.tool-palette button:hover { background: var(--panel-2); color: var(--ink); }
 .tool-palette button.active { background: var(--accent); color: var(--accent-ink); }
 
 .status-bar {
@@ -255,12 +267,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: color-mix(in srgb, var(--panel) 78%, transparent);
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  background: var(--panel);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--shadow);
 }
 
 .field input[type="number"] {
@@ -567,9 +577,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   animation: cmdkIn 260ms cubic-bezier(0.2, 0.9, 0.3, 1.05);
 }
 .onboarding-card h1 {
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
   color: var(--ink);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   margin-bottom: 4px;
 }
 .onboarding-card > p { color: var(--ink-soft); font-size: 14px; margin-bottom: 20px; }

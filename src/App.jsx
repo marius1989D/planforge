@@ -113,22 +113,36 @@ export default function App() {
     if (window.matchMedia('(max-width: 760px)').matches) setInspectorOpen(false)
   }, [setInspectorOpen])
 
-  // apply the theme's chrome tokens as CSS variables
+  // apply the active design system (colour + type + shape + depth) as CSS vars
   useEffect(() => {
-    const c = getTheme(themeId).chrome
+    const t = getTheme(themeId)
+    const c = t.chrome
     const r = document.documentElement.style
     r.setProperty('--paper', c.paper)
     r.setProperty('--panel', c.panel)
+    r.setProperty('--panel-2', c.panel2 || c.panel)
     r.setProperty('--line', c.line)
     r.setProperty('--ink', c.ink)
     r.setProperty('--ink-soft', c.inkSoft)
     r.setProperty('--accent', c.accent)
     r.setProperty('--accent-ink', c.accentInk)
     r.setProperty('--danger', c.danger)
+    r.setProperty('--success', c.success || c.accent)
+    r.setProperty('--rail-bg', c.railBg || c.panel)
+    r.setProperty('--rail-ink', c.railInk || c.inkSoft)
     r.setProperty('--topbar-bg', c.topbarBg)
     r.setProperty('--topbar-border', c.topbarBorder)
     r.setProperty('--topbar-ink', c.topbarInk)
     r.setProperty('--topbar-ink-soft', c.topbarInkSoft)
+    // typography
+    r.setProperty('--font-ui', t.type.ui)
+    r.setProperty('--font-display', t.type.display)
+    r.setProperty('--font-mono', t.type.mono)
+    // shape + depth
+    r.setProperty('--radius', t.shape.radius)
+    r.setProperty('--radius-lg', t.shape.radiusLg)
+    r.setProperty('--shadow', t.depth.shadow)
+    document.documentElement.dataset.theme = themeId
   }, [themeId])
 
   const selType = selection ? TYPE_LABELS[selection.type] : null

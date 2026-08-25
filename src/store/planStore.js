@@ -9,6 +9,7 @@ import {
 } from '../geometry/geo.js'
 import { buildSamplePlan } from '../model/samplePlan.js'
 import { furnishRoom as computeFurnish } from '../geometry/furnishGeo.js'
+import { THEMES } from '../model/themes.js'
 
 // ============================================================
 // Persistence (unchanged keys). Plans are schema v2 (floors[]);
@@ -725,7 +726,12 @@ export const usePlanStore = create((set, get) => {
 
     // ---- appearance / ephemeral UI ------------------------------------
     theme: (() => {
-      try { return localStorage.getItem('planforge_theme') || 'daylight' } catch { return 'daylight' }
+      // Studio is the default. Sanitize stale ids (the old Daylight/Midnight/…
+      // themes were replaced by the four design directions).
+      try {
+        const s = localStorage.getItem('planforge_theme')
+        return THEMES[s] ? s : 'studio'
+      } catch { return 'studio' }
     })(),
     setTheme: (theme) => {
       try { localStorage.setItem('planforge_theme', theme) } catch { /* noop */ }
