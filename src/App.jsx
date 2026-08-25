@@ -56,12 +56,13 @@ function Menu({ label, items }) {
   )
 }
 
-// Settings gear (mobile action bar): tap to switch the design system.
+// Settings gear (mobile action bar): switch the design system + open the panel.
 function SettingsMenu() {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const themeId = usePlanStore((s) => s.theme)
   const setTheme = usePlanStore((s) => s.setTheme)
+  const setInspectorOpen = usePlanStore((s) => s.setInspectorOpen)
   useEffect(() => {
     if (!open) return
     const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
@@ -76,7 +77,7 @@ function SettingsMenu() {
   return (
     <div className="settings-menu" ref={ref}>
       <button className="subbar-btn settings-btn" onClick={() => setOpen((o) => !o)}
-        title="Appearance" aria-label="Appearance" aria-expanded={open}>
+        title="Settings" aria-label="Settings" aria-expanded={open}>
         <ActionIcon name="settings" />
       </button>
       {open && (
@@ -94,6 +95,11 @@ function SettingsMenu() {
               </button>
             ))}
           </div>
+          <p className="settings-h settings-h-2">Settings</p>
+          <button className="settings-item" role="menuitem"
+            onClick={() => { setInspectorOpen(true); setOpen(false) }}>
+            Open settings panel
+          </button>
         </div>
       )}
     </div>
@@ -291,7 +297,7 @@ export default function App() {
     })),
     { label: 'Show dimensions', keywords: 'measurements on', group: 'dims', run: () => setShowDimensions(true) },
     { label: 'Hide dimensions', keywords: 'measurements off', group: 'dims', run: () => setShowDimensions(false) },
-    { label: 'Open settings panel', keywords: 'inspector sidebar', group: 'settings', run: () => setInspectorOpen(true) },
+    { label: 'Open settings panel', keywords: 'inspector sidebar', group: 'settings', run: () => setInspectorOpen(true), mobileBar: true },
   ]
   // on mobile, drop the actions the always-visible bars already expose
   const menuActions = isMobile ? paletteActions.filter((a) => !a.mobileBar) : paletteActions

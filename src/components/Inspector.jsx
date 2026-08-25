@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useRef } from 'react'
 import { usePlanStore, activeFloorOf } from '../store/planStore'
 import { formatArea } from '../model/units'
 import { DEFAULTS } from '../model/schema'
@@ -73,6 +73,35 @@ export default function Inspector() {
     : null
   const addDemoRoom = useAddDemoRoom()
   const compact = useIsMobile()
+  const [renameFloorOpen, setRenameFloorOpen] = useState(false)
+
+  // resizable bottom sheet (mobile): drag the top grip to set the panel height
+  const asideRef = useRef(null)
+  const [sheetH, setSheetH] = useState(null)
+  const onGripDown = (e) => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startH = asideRef.current?.getBoundingClientRect().height || 0
+    const onMove = (ev) => {
+      const dy = startY - ev.clientY // drag up → taller
+      const max = window.innerHeight * 0.92
+      const min = 160
+      setSheetH(Math.max(min, Math.min(max, startH + dy)))
+    }
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  const deleteActiveFloor = () => {
+    if (plan.floors.length <= 1) return
+    if (confirm(`Delete "${floor.name}" and everything on it?`)) {
+      deleteFloor(plan.activeFloorIndex || 0)
+    }
+  }
 
   const totalArea = floor.rooms
     .filter((r) => r.source === 'auto')
@@ -92,7 +121,12 @@ export default function Inspector() {
   }
 
   return (
-    <aside className="inspector glass">
+    <aside className="inspector glass" ref={asideRef}
+      style={compact && sheetH ? { height: `${sheetH}px`, maxHeight: '92dvh' } : undefined}>
+      {compact && (
+        <div className="sheet-grip" onPointerDown={onGripDown}
+          role="separator" aria-label="Drag to resize panel"><span /></div>
+      )}
       <button
         className="inspector-collapse"
         onClick={() => setInspectorOpen(false)}
@@ -125,19 +159,61 @@ export default function Inspector() {
         <button className="floor-add" title="Add a floor above (copies the shell walls)"
           onClick={() => addFloor()}>+</button>
       </div>
-      <EditableField label="Floor name" value={floor.name} compact={compact}>
-        <input value={floor.name}
-          onChange={(e) => renameFloor(plan.activeFloorIndex || 0, e.target.value)} />
-      </EditableField>
-      {plan.floors.length > 1 && (
-        <button className="danger-link"
-          onClick={() => {
-            if (confirm(`Delete "${floor.name}" and everything on it?`)) {
-              deleteFloor(plan.activeFloorIndex || 0)
-            }
-          }}>
-          Delete this floor…
-        </button>
+      {compact ? (
+        // the active floor's name is already shown on its tab, so just offer
+        // rename / delete actions rather than a redundant name field
+        <div className="floor-actions">
+          <button className="floor-act" onClick={() => setRenameFloorOpen(true)}
+            title="Rename floor" aria-label="Rename floor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17z" /><path d="M13.5 6.5l3 3" />
+            </svg>
+            <span>Rename</span>
+          </button>
+          {plan.floors.length > 1 && (
+            <button className="floor-act danger" onClick={deleteActiveFloor}
+              title="Delete floor" aria-label="Delete floor">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
+              </svg>
+              <span>Delete</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <label className="field">
+            Floor name
+            <input value={floor.name}
+              onChange={(e) => renameFloor(plan.activeFloorIndex || 0, e.target.value)} />
+          </label>
+          {plan.floors.length > 1 && (
+            <button className="danger-link"
+              onClick={() => {
+                if (confirm(`Delete "${floor.name}" and everything on it?`)) {
+                  deleteFloor(plan.activeFloorIndex || 0)
+                }
+              }}>
+              Delete this floor…
+            </button>
+          )}
+        </>
+      )}
+      {renameFloorOpen && (
+        <div className="edit-pop-backdrop" onMouseDown={() => setRenameFloorOpen(false)}>
+          <div className="edit-pop" role="dialog" aria-label="Rename floor"
+            onMouseDown={(e) => e.stopPropagation()}>
+            <div className="edit-pop-title">Floor name</div>
+            <div className="edit-pop-body">
+              <input autoFocus value={floor.name}
+                onChange={(e) => renameFloor(plan.activeFloorIndex || 0, e.target.value)} />
+            </div>
+            <button type="button" className="edit-pop-done"
+              onClick={() => setRenameFloorOpen(false)}>Done</button>
+          </div>
+        </div>
       )}
 
       <h2>Rooms</h2>
@@ -267,22 +343,16 @@ export default function Inspector() {
                 </p>
               )
             })()}
-            {selectedOpening.type === 'door' && (() => {
-              const styleLabels = { single: 'Single swing', double: 'Double swing', sliding: 'Sliding' }
-              const variant = selectedOpening.variant || 'single'
-              return (
-                <EditableField label="Door style" value={styleLabels[variant]} compact={compact}>
-                  <select
-                    value={variant}
-                    onChange={(e) => updateOpening(selectedOpening.id, { variant: e.target.value })}
-                  >
-                    <option value="single">Single swing</option>
-                    <option value="double">Double swing</option>
-                    <option value="sliding">Sliding</option>
-                  </select>
-                </EditableField>
-              )
-            })()}
+            {selectedOpening.type === 'door' && (
+              <EditableField label="Door style" compact={compact}
+                value={selectedOpening.variant || 'single'}
+                onSelect={(v) => updateOpening(selectedOpening.id, { variant: v })}
+                options={[
+                  { value: 'single', label: 'Single swing' },
+                  { value: 'double', label: 'Double swing' },
+                  { value: 'sliding', label: 'Sliding' },
+                ]} />
+            )}
             {selectedOpening.type === 'door' && (selectedOpening.variant || 'single') !== 'sliding' && (
               <div className="btn-row">
                 <button onClick={() => updateOpening(selectedOpening.id,
@@ -401,18 +471,14 @@ export default function Inspector() {
       )}
 
       <h2>Settings</h2>
-      {(() => {
-        const roofLabels = { none: 'None (open top)', flat: 'Flat roof', pitched: 'Pitched (hip) roof' }
-        return (
-          <EditableField label="Roof (3D view)" value={roofLabels[plan.roof || 'none']} compact={compact}>
-            <select value={plan.roof || 'none'} onChange={(e) => setRoof(e.target.value)}>
-              <option value="none">None (open top)</option>
-              <option value="flat">Flat roof</option>
-              <option value="pitched">Pitched (hip) roof</option>
-            </select>
-          </EditableField>
-        )
-      })()}
+      <EditableField label="Roof (3D view)" compact={compact}
+        value={plan.roof || 'none'}
+        onSelect={(v) => setRoof(v)}
+        options={[
+          { value: 'none', label: 'None (open top)' },
+          { value: 'flat', label: 'Flat roof' },
+          { value: 'pitched', label: 'Pitched (hip) roof' },
+        ]} />
       {plan.roof === 'pitched' && (
         <EditableField label="Roof pitch (°)" value={`${plan.roofPitch || 30}°`} compact={compact}>
           <input type="number" min="10" max="55" step="5"
@@ -420,24 +486,16 @@ export default function Inspector() {
             onChange={(e) => setRoofPitch(Number(e.target.value) || 30)} />
         </EditableField>
       )}
-      <EditableField label="Wall colour (3D)"
-        value={WALL_COLORS.find((c) => c.value === plan.wallColor)?.label || 'Default'} compact={compact}>
-        <select value={plan.wallColor || ''} onChange={(e) => setWallColor(e.target.value || null)}>
-          <option value="">Default</option>
-          {WALL_COLORS.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
-      </EditableField>
-      <EditableField label="Floor colour (3D)"
-        value={FLOOR_COLORS.find((c) => c.value === plan.floorColor)?.label || 'Default'} compact={compact}>
-        <select value={plan.floorColor || ''} onChange={(e) => setFloorColor(e.target.value || null)}>
-          <option value="">Default</option>
-          {FLOOR_COLORS.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
-      </EditableField>
+      <EditableField label="Wall colour (3D)" compact={compact}
+        value={plan.wallColor || ''}
+        onSelect={(v) => setWallColor(v || null)}
+        options={[{ value: '', label: 'Default' },
+          ...WALL_COLORS.map((c) => ({ value: c.value, label: c.label }))]} />
+      <EditableField label="Floor colour (3D)" compact={compact}
+        value={plan.floorColor || ''}
+        onSelect={(v) => setFloorColor(v || null)}
+        options={[{ value: '', label: 'Default' },
+          ...FLOOR_COLORS.map((c) => ({ value: c.value, label: c.label }))]} />
       {(() => {
         const sun = { ...SUN_DEFAULTS, ...(plan.sun || {}) }
         const pos = solarPosition(sun)
@@ -537,13 +595,13 @@ export default function Inspector() {
           onChange={(e) => setShowDimensions(e.target.checked)} />
         Show exterior dimensions (2D + PDF)
       </label>
-      <EditableField label="Units"
-        value={plan.units === 'ft' ? 'Imperial (ft/in)' : 'Metric (mm/m)'} compact={compact}>
-        <select value={plan.units} onChange={(e) => setUnits(e.target.value)}>
-          <option value="mm">Metric (mm/m)</option>
-          <option value="ft">Imperial (ft/in)</option>
-        </select>
-      </EditableField>
+      <EditableField label="Units" compact={compact}
+        value={plan.units}
+        onSelect={(v) => setUnits(v)}
+        options={[
+          { value: 'mm', label: 'Metric (mm/m)' },
+          { value: 'ft', label: 'Imperial (ft/in)' },
+        ]} />
       <p className="hint">
         Grid snap: {plan.gridSize} mm · Wall default: {DEFAULTS.wallThickness} mm thick,{' '}
         {DEFAULTS.wallHeight} mm high
