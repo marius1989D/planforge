@@ -252,10 +252,11 @@ export default function App() {
     reader.readAsText(file)
   }
 
-  // full command set (desktop ⌘K). On mobile the always-visible bars already
-  // cover the tools (bottom bar) and theme + undo/redo/delete/duplicate
-  // (sub-toolbar), so anything flagged `mobileBar` is filtered out of the ☰
-  // menu to avoid duplicates.
+  // full command set (desktop ⌘K). Anything flagged `mobileBar` is already
+  // reachable elsewhere in the mobile chrome — the bottom tool bar, the
+  // sub-toolbar (theme + undo/redo/delete/duplicate), the topbar 2D/3D
+  // switch, or the in-view walk control — so it's filtered out of the ☰ menu
+  // to avoid duplicates. The desktop ⌘K palette keeps every command.
   const paletteActions = [
     { label: 'Select tool', keywords: 'pointer move', hint: 'V', run: () => { setView('2d'); setTool('select') }, mobileBar: true },
     { label: 'Draw walls', keywords: 'wall tool', hint: 'W', run: () => { setView('2d'); setTool('wall') }, mobileBar: true },
@@ -274,9 +275,9 @@ export default function App() {
         setView('3d')
       },
     },
-    { label: 'Switch to 2D plan', keywords: 'view editor', run: () => setView('2d') },
-    { label: 'Switch to 3D view', keywords: 'view model', run: () => setView('3d') },
-    { label: 'Walk through the home', keywords: 'first person walkthrough tour explore', run: () => { setView('3d'); setWalkMode(true) } },
+    { label: 'Switch to 2D plan', keywords: 'view editor', run: () => setView('2d'), mobileBar: true },
+    { label: 'Switch to 3D view', keywords: 'view model', run: () => setView('3d'), mobileBar: true },
+    { label: 'Walk through the home', keywords: 'first person walkthrough tour explore', run: () => { setView('3d'); setWalkMode(true) }, mobileBar: true },
     { label: 'Undo', hint: '⌘Z', run: undo, mobileBar: true },
     { label: 'Redo', hint: '⇧⌘Z', run: redo, mobileBar: true },
     { label: 'Duplicate selected item', hint: '⌘D', run: duplicateSelected, mobileBar: true },
