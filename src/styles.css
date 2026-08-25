@@ -504,13 +504,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 
 /* mobile room rows: tap to highlight, with rename/delete icons per row */
 .room-row {
-  padding: 9px 10px;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  padding: 8px 10px;
+  border-radius: var(--radius); /* rounds the selected-row highlight */
   cursor: pointer;
 }
-.room-row.row-selected { border-color: var(--accent); }
 .room-row .room-name {
   flex: 1; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1100,6 +1097,11 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
     flex: none;
   }
   .inspector h2:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+
+  /* selected-item panels (e.g. auto-furnish) need clear separation from the
+     section above — their heading's top spacing is stripped by the
+     first-of-type reset, so space the panel itself */
+  .sel-panel { margin-top: 20px; }
 
   /* floors stay on one scrollable row instead of wrapping to a second line */
   .floor-tabs {
