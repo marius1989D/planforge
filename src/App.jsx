@@ -8,6 +8,7 @@ import { exportPlanPdf } from './export/pdfExport'
 import { getTheme, THEMES } from './model/themes'
 import CommandPalette from './components/CommandPalette'
 import AiGenerate from './components/AiGenerate'
+import ActionIcon from './components/ActionIcon'
 
 const TYPE_LABELS = {
   wall: 'wall', opening: 'door/window', room: 'room', zone: 'zone', furniture: 'furniture', stair: 'stairs',
@@ -47,6 +48,50 @@ function Menu({ label, items }) {
               </button>
             ),
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Settings gear (mobile action bar): tap to switch the design system.
+function SettingsMenu() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const themeId = usePlanStore((s) => s.theme)
+  const setTheme = usePlanStore((s) => s.setTheme)
+  useEffect(() => {
+    if (!open) return
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+  return (
+    <div className="settings-menu" ref={ref}>
+      <button className="subbar-btn settings-btn" onClick={() => setOpen((o) => !o)}
+        title="Appearance" aria-label="Appearance" aria-expanded={open}>
+        <ActionIcon name="settings" />
+      </button>
+      {open && (
+        <div className="settings-panel glass" role="menu">
+          <p className="settings-h">Appearance</p>
+          <div className="theme-picker" role="radiogroup" aria-label="Theme">
+            {Object.values(THEMES).map((t) => (
+              <button key={t.id} role="radio" aria-checked={themeId === t.id}
+                className={themeId === t.id ? 'active' : ''} title={t.label}
+                onClick={() => { setTheme(t.id); setOpen(false) }}>
+                <span className="theme-swatch">
+                  {t.swatch.map((c, i) => <i key={i} style={{ background: c }} />)}
+                </span>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -265,6 +310,20 @@ export default function App() {
             style={{ display: 'none' }} onChange={handleImport} />
         </div>
       </header>
+
+      {/* mobile sub-toolbar: appearance + critical actions, always in sight */}
+      <div className="subbar" role="toolbar" aria-label="Quick actions">
+        <SettingsMenu />
+        <span className="subbar-sep" aria-hidden="true" />
+        <button className="subbar-btn" onClick={undo} disabled={!canUndo}
+          title="Undo (⌘Z)" aria-label="Undo"><ActionIcon name="undo" /></button>
+        <button className="subbar-btn" onClick={redo} disabled={!canRedo}
+          title="Redo (⇧⌘Z)" aria-label="Redo"><ActionIcon name="redo" /></button>
+        <button className="subbar-btn" onClick={deleteSelected} disabled={!canDeleteSel}
+          title="Delete selected" aria-label="Delete"><ActionIcon name="trash" /></button>
+        <button className="subbar-btn" onClick={duplicateSelected} disabled={!selection}
+          title="Duplicate selected" aria-label="Duplicate"><ActionIcon name="duplicate" /></button>
+      </div>
 
       <main className="workspace">
         {view === '2d' && <ToolRail />}

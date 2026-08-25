@@ -84,6 +84,9 @@ body { background: var(--paper); color: var(--ink); font-family: var(--font-ui);
 .topbar-actions button:hover:not(:disabled) { background: var(--panel-2); border-color: var(--accent); }
 .topbar-actions button:disabled { opacity: .45; cursor: default; }
 
+/* mobile-only sub-toolbar (styled in the mobile block at end of file) */
+.subbar { display: none; }
+
 /* ---- workspace ---- */
 .workspace { flex: 1; display: flex; min-height: 0; }
 
@@ -914,6 +917,52 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
   /* AI dialog: near-full-width and scrollable rather than a narrow card */
   .modal-backdrop { padding-top: 6vh; }
   .modal { width: calc(100vw - 24px); max-height: 82dvh; overflow-y: auto; }
+
+  /* ---- sub-toolbar: appearance + critical actions ---- */
+  .subbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--topbar-border);
+    color: var(--topbar-ink);
+    z-index: 19;
+  }
+  .subbar-btn {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--topbar-border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--topbar-ink);
+    cursor: pointer;
+  }
+  .subbar-btn:disabled { opacity: .35; cursor: default; }
+  .subbar-btn:not(:disabled):active { background: var(--panel-2); }
+  .subbar-btn svg { width: 20px; height: 20px; }
+  .subbar .settings-btn { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--topbar-border)); }
+  .subbar-sep { width: 1px; height: 22px; background: var(--topbar-border); margin: 0 3px; flex: none; }
+  .settings-menu { position: relative; display: inline-flex; }
+  .settings-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 50;
+    padding: 12px;
+    min-width: 224px;
+    color: var(--ink);
+  }
+  .settings-h {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+  }
 }
 
 /* Finger-friendly hit targets on touch devices. */
