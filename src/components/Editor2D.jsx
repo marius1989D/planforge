@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { Stage, Layer, Line, Group, Text, Circle, Arc, Rect } from 'react-konva'
+import ToolIcon from './ToolIcon'
 import { usePlanStore, activeFloorOf } from '../store/planStore'
 import { doorClearanceIssues } from '../geometry/clearanceGeo'
 import {
@@ -1337,22 +1338,22 @@ export default function Editor2D() {
 
       {/* tool palette overlay */}
       <div className="tool-palette" role="toolbar" aria-label="Editor tools">
-        <button className={tool === 'select' ? 'active' : ''}
-          onClick={() => switchTool('select')} title="Select (V)">Select</button>
-        <button className={tool === 'wall' ? 'active' : ''}
-          onClick={() => switchTool('wall')} title="Draw walls (W)">Wall</button>
-        <button className={tool === 'door' ? 'active' : ''}
-          onClick={() => switchTool('door')} title="Place door (D)">Door</button>
-        <button className={tool === 'window' ? 'active' : ''}
-          onClick={() => switchTool('window')} title="Place window (N)">Window</button>
-        <button className={tool === 'furniture' ? 'active' : ''}
-          onClick={() => switchTool('furniture')} title="Place furniture (F)">Furniture</button>
-        <button className={tool === 'zone' ? 'active' : ''}
-          onClick={() => switchTool('zone')} title="Draw zone (Z)">Zone</button>
-        <button className={tool === 'stair' ? 'active' : ''}
-          onClick={() => switchTool('stair')} title="Place stairs (S)">Stairs</button>
-        <button className={tool === 'measure' ? 'active' : ''}
-          onClick={() => switchTool('measure')} title="Tape measure (M)">Measure</button>
+        {[
+          ['select', 'Select', 'Select (V)'],
+          ['wall', 'Wall', 'Draw walls (W)'],
+          ['door', 'Door', 'Place door (D)'],
+          ['window', 'Window', 'Place window (N)'],
+          ['furniture', 'Furniture', 'Place furniture (F)'],
+          ['zone', 'Zone', 'Draw zone (Z)'],
+          ['stair', 'Stairs', 'Place stairs (S)'],
+          ['measure', 'Measure', 'Tape measure (M)'],
+        ].map(([id, label, hint]) => (
+          <button key={id} className={tool === id ? 'active' : ''}
+            onClick={() => switchTool(id)} title={hint} aria-label={hint}>
+            <ToolIcon name={id === 'stair' ? 'stair' : id} />
+            <span>{label}</span>
+          </button>
+        ))}
       </div>
       {tool === 'wall' && (
         <div className="wall-options" role="group" aria-label="Wall thickness">
