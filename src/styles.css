@@ -44,7 +44,7 @@ body { background: var(--paper); color: var(--ink); font-family: var(--font-ui);
   color: var(--topbar-ink);
   z-index: 20;
 }
-.logo { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.005em; font-size: 16px; color: var(--topbar-ink); }
+.logo { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.005em; font-size: 19px; color: var(--topbar-ink); }
 .logo-mark { color: var(--topbar-ink); flex: none; display: block; }
 .logo-accent { color: var(--accent); }
 .plan-name {

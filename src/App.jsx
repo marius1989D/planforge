@@ -252,18 +252,19 @@ export default function App() {
     reader.readAsText(file)
   }
 
-  // full command set (desktop ⌘K). On mobile the sub-toolbar already covers
-  // theme switching + undo/redo/delete/duplicate, so those are filtered out of
-  // the ☰ menu to avoid duplicates.
+  // full command set (desktop ⌘K). On mobile the always-visible bars already
+  // cover the tools (bottom bar) and theme + undo/redo/delete/duplicate
+  // (sub-toolbar), so anything flagged `mobileBar` is filtered out of the ☰
+  // menu to avoid duplicates.
   const paletteActions = [
-    { label: 'Select tool', keywords: 'pointer move', hint: 'V', run: () => { setView('2d'); setTool('select') } },
-    { label: 'Draw walls', keywords: 'wall tool', hint: 'W', run: () => { setView('2d'); setTool('wall') } },
-    { label: 'Place door', keywords: 'opening', hint: 'D', run: () => { setView('2d'); setTool('door') } },
-    { label: 'Place window', keywords: 'opening glass', hint: 'N', run: () => { setView('2d'); setTool('window') } },
-    { label: 'Place furniture', keywords: 'sofa bed table library', hint: 'F', run: () => { setView('2d'); setTool('furniture') } },
-    { label: 'Draw zone', keywords: 'open plan area kitchen', hint: 'Z', run: () => { setView('2d'); setTool('zone') } },
-    { label: 'Place stairs', keywords: 'staircase floor up', hint: 'S', run: () => { setView('2d'); setTool('stair') } },
-    { label: 'Measure a distance', keywords: 'tape ruler length', hint: 'M', run: () => { setView('2d'); setTool('measure') } },
+    { label: 'Select tool', keywords: 'pointer move', hint: 'V', run: () => { setView('2d'); setTool('select') }, mobileBar: true },
+    { label: 'Draw walls', keywords: 'wall tool', hint: 'W', run: () => { setView('2d'); setTool('wall') }, mobileBar: true },
+    { label: 'Place door', keywords: 'opening', hint: 'D', run: () => { setView('2d'); setTool('door') }, mobileBar: true },
+    { label: 'Place window', keywords: 'opening glass', hint: 'N', run: () => { setView('2d'); setTool('window') }, mobileBar: true },
+    { label: 'Place furniture', keywords: 'sofa bed table library', hint: 'F', run: () => { setView('2d'); setTool('furniture') }, mobileBar: true },
+    { label: 'Draw zone', keywords: 'open plan area kitchen', hint: 'Z', run: () => { setView('2d'); setTool('zone') }, mobileBar: true },
+    { label: 'Place stairs', keywords: 'staircase floor up', hint: 'S', run: () => { setView('2d'); setTool('stair') }, mobileBar: true },
+    { label: 'Measure a distance', keywords: 'tape ruler length', hint: 'M', run: () => { setView('2d'); setTool('measure') }, mobileBar: true },
     { label: 'Add a floor', keywords: 'storey level upstairs', run: addFloor },
     {
       label: 'Toggle sun & daylight simulation', keywords: 'sunlight shadows solar time',
@@ -276,10 +277,10 @@ export default function App() {
     { label: 'Switch to 2D plan', keywords: 'view editor', run: () => setView('2d') },
     { label: 'Switch to 3D view', keywords: 'view model', run: () => setView('3d') },
     { label: 'Walk through the home', keywords: 'first person walkthrough tour explore', run: () => { setView('3d'); setWalkMode(true) } },
-    { label: 'Undo', hint: '⌘Z', run: undo, subbar: true },
-    { label: 'Redo', hint: '⇧⌘Z', run: redo, subbar: true },
-    { label: 'Duplicate selected item', hint: '⌘D', run: duplicateSelected, subbar: true },
-    { label: 'Delete selected item', keywords: 'remove', hint: 'Del', run: deleteSelected, subbar: true },
+    { label: 'Undo', hint: '⌘Z', run: undo, mobileBar: true },
+    { label: 'Redo', hint: '⇧⌘Z', run: redo, mobileBar: true },
+    { label: 'Duplicate selected item', hint: '⌘D', run: duplicateSelected, mobileBar: true },
+    { label: 'Delete selected item', keywords: 'remove', hint: 'Del', run: deleteSelected, mobileBar: true },
     {
       label: 'Auto-furnish selected room…', keywords: 'furniture layout bedroom living kitchen fill',
       run: () => { setInspectorOpen(true) },
@@ -293,21 +294,21 @@ export default function App() {
     { label: 'Generate a plan with AI…', keywords: 'ai claude describe magic create', run: () => setAiOpen(true) },
     { label: 'Load the sample home', keywords: 'demo example bungalow try', run: loadSamplePlan },
     ...Object.values(THEMES).map((t) => ({
-      label: `Theme: ${t.label}`, keywords: 'appearance color dark light', run: () => setTheme(t.id), subbar: true,
+      label: `Theme: ${t.label}`, keywords: 'appearance color dark light', run: () => setTheme(t.id), mobileBar: true,
     })),
     { label: 'Show dimensions', keywords: 'measurements on', run: () => setShowDimensions(true) },
     { label: 'Hide dimensions', keywords: 'measurements off', run: () => setShowDimensions(false) },
     { label: 'Open settings panel', keywords: 'inspector sidebar', run: () => setInspectorOpen(true) },
   ]
-  // on mobile, drop the actions duplicated by the sub-toolbar
-  const menuActions = isMobile ? paletteActions.filter((a) => !a.subbar) : paletteActions
+  // on mobile, drop the actions the always-visible bars already expose
+  const menuActions = isMobile ? paletteActions.filter((a) => !a.mobileBar) : paletteActions
 
   return (
     <div className="app">
       <header className="topbar">
         {/* project identity */}
         <span className="logo" aria-label="PlanForge">
-          <Logo size={20} className="logo-mark" />
+          <Logo size={26} className="logo-mark" />
           <span className="logo-word">Plan<span className="logo-accent">Forge</span></span>
         </span>
         <select className="plan-select" value={plan.id}
