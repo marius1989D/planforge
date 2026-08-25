@@ -528,8 +528,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .room-ic:hover, .room-ic:active { color: var(--accent); }
 .room-ic.danger:hover, .room-ic.danger:active { color: var(--danger); }
 
-/* drag grip to resize the mobile bottom sheet — sticky so it stays reachable
-   while the panel body scrolls under it */
+/* drag grip to resize the mobile bottom sheet — a flush, edge-to-edge header
+   bar pinned to the very top so there's no gap and it stays reachable while
+   the panel body scrolls under it */
 .sheet-grip {
   position: sticky;
   top: 0;
@@ -537,9 +538,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
-  margin: 0 0 4px;
+  margin: 0 -16px 6px;
+  padding: 12px 0 8px;
   background: var(--panel);
+  border-radius: 16px 16px 0 0;
   cursor: ns-resize;
   touch-action: none;
 }
@@ -1109,7 +1111,7 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
     border-top: 1px solid var(--line);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
-    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom));
     z-index: 40;
     animation: sheetIn 220ms ease;
   }
@@ -1175,8 +1177,23 @@ button { transition: background 130ms ease, color 130ms ease, border-color 130ms
     color: var(--ink-soft);
     margin: 0 0 8px;
   }
-  /* keep the collapse ✕ tappable above the sticky drag grip */
-  .inspector-collapse { z-index: 3; }
+  /* visible round close button, above the sticky drag grip */
+  .inspector-collapse {
+    z-index: 3;
+    top: 8px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--panel-2);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1;
+  }
+  .inspector-collapse:active { background: var(--line); }
 }
 
 /* Finger-friendly hit targets on touch devices. */
