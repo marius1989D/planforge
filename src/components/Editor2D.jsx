@@ -1058,6 +1058,12 @@ export default function Editor2D() {
                 <Line points={flat(r.polygon)} closed fill={ROOM_FILLS[i % ROOM_FILLS.length]}
                   stroke={isSel ? T.plan.wallSelected : undefined}
                   strokeWidth={isSel ? 2.5 / viewport.scale : 0} />
+                {/* fill the interior when selected — the thin outline sits under
+                    the walls and is otherwise invisible */}
+                {isSel && (
+                  <Line points={flat(r.polygon)} closed
+                    fill={T.plan.wallSelected} opacity={0.22} listening={false} />
+                )}
                 <Text x={c.x - 60 / viewport.scale} y={c.y - fontSize}
                   width={120 / viewport.scale} align="center"
                   text={`${r.name}\n${formatArea(r.area, plan.units)}`}
