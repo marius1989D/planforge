@@ -600,16 +600,25 @@ export const usePlanStore = create((set, get) => {
       const floor = activeFloorOf(get().plan)
       const room = floor.rooms.find((r) => r.id === roomId && r.source === 'auto')
       if (!room) return 0
+      // re-furnishing replaces: clear furniture already inside this room, then
+      // lay out the new set (kept furniture is only what's outside the room)
+      const kept = floor.furniture.filter((x) => !pointInPolygon(x.position, room.polygon))
       const placements = computeFurnish({
         room,
         walls: floor.walls,
         openings: floor.openings,
-        existingFurniture: floor.furniture,
+        existingFurniture: kept,
         kind,
       })
       if (!placements.length) return 0
       const items = placements.map((p) => createFurniture(p))
-      commitFloor((f) => ({ ...f, furniture: [...f.furniture, ...items] }))
+      commitFloor((f) => ({
+        ...f,
+        furniture: [
+          ...f.furniture.filter((x) => !pointInPolygon(x.position, room.polygon)),
+          ...items,
+        ],
+      }))
       return items.length
     },
 

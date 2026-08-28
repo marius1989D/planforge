@@ -434,7 +434,7 @@ export default function Inspector() {
                 <button key={k} onClick={() => furnishRoom(rm.id, k)}>{label}</button>
               ))}
             </div>
-            <p className="hint">Adds to what's there · one ⌘Z removes the batch</p>
+            <p className="hint">Replaces what's in the room · one ⌘Z undoes it</p>
           </div>
         )
       })()}
